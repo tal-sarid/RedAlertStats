@@ -1,0 +1,33 @@
+{% if error %}
+<div class="err-banner">&#9888;&nbsp; {{ error }}</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-title">Query</div>
+    <form method="get" action="/report">
+        <div class="form-row">
+            <div class="fg">
+                <label>City Name</label>
+                <input type="text" name="city" value="{{ city }}"
+                       placeholder="e.g. Tel Aviv - City Center" required>
+            </div>
+            <div class="fg">
+                <label>From</label>
+                <input type="date" name="from_date" value="{{ from_val }}" required>
+            </div>
+            <div class="fg">
+                <label>To</label>
+                <input type="date" name="to_date" value="{{ to_val }}" required>
+            </div>
+            <div class="fg">
+                <label>Language</label>
+                <select name="lang">
+                    {% for code, label in lang_options %}
+                    <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn">Generate</button>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tzeva Adom Stats</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="pulse"></div>
+        <div>
+            <h1>Tzeva Adom Stats</h1>
+            <div class="sub">Israeli Oref Alert History Analyzer</div>
+        </div>
+    </header>
+
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

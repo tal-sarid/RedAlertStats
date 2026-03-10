@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% include "_form.html" %}
+
+{# ── Report heading ──────────────────────────────────────────────────────── #}
+<div class="rep-head">
+    <h2>{{ city_display }}</h2>
+    <div class="meta">
+        {{ from_date }} &rarr; {{ to_date }}
+        &nbsp;&middot;&nbsp; {{ lang_name }}
+        &nbsp;&middot;&nbsp; {{ total_records }} records
+    </div>
+</div>
+
+{# ── Stat cards ──────────────────────────────────────────────────────────── #}
+<div class="stats-row">
+    <div class="stat">
+        <div class="sl">Actual Threats</div>
+        <div class="sv">{{ actual_count }}</div>
+        <div class="ss">rockets &amp; aircraft</div>
+    </div>
+    <div class="stat">
+        <div class="sl">Shelter Periods</div>
+        <div class="sv">{{ period_count }}</div>
+        <div class="ss">{{ with_hup }} warned &middot; {{ without_hup }} surprise</div>
+    </div>
+    <div class="stat">
+        <div class="sl">Total Shelter Time</div>
+        <div class="sv sm">{{ total_dur }}</div>
+        <div class="ss">avg {{ avg_dur }}</div>
+    </div>
+    <div class="stat">
+        <div class="sl">Warning Head-ups</div>
+        <div class="sv">{{ warning_count }}</div>
+        <div class="ss">
+            {{ fp_count }} false positive{{ 's' if fp_count != 1 else '' }}
+            &middot; {{ '%.0f' | format(fp_ratio) }}%
+        </div>
+    </div>
+</div>
+
+{# ── Breakdown ───────────────────────────────────────────────────────────── #}
+<div class="card">
+    <div class="card-title">Breakdown</div>
+    <div class="det-grid">
+        <div>
+            <div class="dr">
+                <span class="dl">Rocket fire (cat.&nbsp;1)</span>
+                <span class="dv">{{ cat_rocket }}</span>
+            </div>
+            <div class="dr">
+                <span class="dl">Enemy aircraft (cat.&nbsp;2)</span>
+                <span class="dv">{{ cat_aircraft }}</span>
+            </div>
+            <div class="dr">
+                <span class="dl">All-clear events (cat.&nbsp;13)</span>
+                <span class="dv">{{ cat_allclear }}</span>
+            </div>
+            <div class="dr">
+                <span class="dl">Head-up warnings (cat.&nbsp;14)</span>
+                <span class="dv">{{ cat_headup }}</span>
+            </div>
+        </div>
+        <div>
+            <div class="dr">
+                <span class="dl">True positive warnings</span>
+                <span class="dv">{{ true_positive_count }}</span>
+            </div>
+            <div class="dr">
+                <span class="dl">False positive warnings</span>
+                <span class="dv">
+                    {{ fp_count }}&ensp;
+                    <span class="tag t-amb">{{ '%.1f' | format(fp_ratio) }}%</span>
+                </span>
+            </div>
+            <div class="dr">
+                <span class="dl">Avg warning lead time</span>
+                <span class="dv">{{ avg_lead }}</span>
+            </div>
+            <div class="dr">
+                <span class="dl">Max shelter duration</span>
+                <span class="dv">{{ max_dur }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Shelter periods ──────────────────────────────────────────────────────── #}
+<div class="card">
+    <details>
+        <summary class="card-title">
+            Shelter Periods
+            {% if period_count %}&mdash; {{ period_count }}{% endif %}
+        </summary>
+
+    {% if period_rows %}
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Duration</th>
+                    <th>Warning</th>
+                    <th>Alerts</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in period_rows %}
+                <tr>
+                    <td>{{ p.index }}</td>
+                    <td class="nw">{{ p.start }}</td>
+                    <td class="nw">
+                        {% if p.ongoing %}
+                            <span class="live"></span>now
+                            <span class="tag t-red">ongoing</span>
+                        {% else %}
+                            {{ p.end }}
+                        {% endif %}
+                    </td>
+                    <td class="nw">
+                        {{ p.duration }}{% if p.ongoing %}&hellip;{% endif %}
+                    </td>
+                    <td>
+                        {% if p.warn_lead %}
+                            <span class="tag t-grn">{{ p.warn_lead }}</span>
+                        {% else %}
+                            <span class="tag t-red">surprise</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.consecutive_count > 1 %}
+                            <span class="tag t-blue">{{ p.consecutive_count }}&times;</span>
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty">No shelter periods found for this date range.</p>
+    {% endif %}
+    </details>
+</div>
+
+{# ── False positive warnings ─────────────────────────────────────────────── #}
+{% if fp_rows %}
+<div class="card">
+    <details>
+        <summary class="card-title">False Positive Warnings &mdash; {{ fp_count }}</summary>
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr><th>#</th><th>Timestamp</th></tr>
+            </thead>
+            <tbody>
+                {% for w in fp_rows %}
+                <tr>
+                    <td>{{ w.index }}</td>
+                    <td class="nw">{{ w.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </details>
+</div>
+{% endif %}
+
+{% endblock %}
