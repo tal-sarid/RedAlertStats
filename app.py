@@ -2,10 +2,11 @@
 """
 Tzeva Adom Stats - Web Server
 
-Run:  python app.py
+Run:  python app.py [--host HOST] [--port PORT] [--debug]
 Open: http://localhost:5000
 """
 
+import argparse
 import os
 from datetime import datetime
 
@@ -188,7 +189,12 @@ def report():
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    parser = argparse.ArgumentParser(description='Tzeva Adom Stats web server')
+    parser.add_argument('--host', default='localhost', help='Host to bind to (default: localhost)')
+    parser.add_argument('--port', type=int, default=5000, help='Port to listen on (default: 5000)')
+    parser.add_argument('--debug', action='store_true', default=False, help='Enable Flask debug mode')
+    args = parser.parse_args()
+    app.run(host=args.host, port=args.port, debug=args.debug)
 
 # ────────────────────────────────────────────────────────────────────────────
 

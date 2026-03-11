@@ -28,6 +28,22 @@ It includes:
 
 ## Setup
 
+### Using scripts
+
+#### Bash
+
+```bash
+./setup.sh
+```
+
+#### PowerShell (Windows)
+
+```powershell
+.\setup.ps1
+```
+
+### Manual setup
+
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
@@ -36,8 +52,44 @@ pip install -r requirements.txt
 
 ## Run The Web App
 
+### Using scripts
+
+#### Bash
+
 ```bash
-python app.py
+./run.sh [--host HOST] [--port PORT] [--debug]
+```
+
+#### PowerShell (Windows)
+
+```powershell
+.\run.ps1 [--host HOST] [--port PORT] [--debug]
+```
+
+### Manual run
+
+```bash
+python app.py [--host HOST] [--port PORT] [--debug]
+```
+
+### Server options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--host` | `localhost` | Host/IP to bind to. Use `0.0.0.0` to expose on all interfaces. |
+| `--port` | `5000` | Port to listen on. |
+| `--debug` | off | Enable Flask debug mode with auto-reload. |
+
+Examples:
+
+```bash
+./run.sh --port 8080
+./run.sh --host 0.0.0.0 --debug
+```
+
+```powershell
+.\run.ps1 --port 8080
+.\run.ps1 --host 0.0.0.0 --debug
 ```
 
 Then open:
