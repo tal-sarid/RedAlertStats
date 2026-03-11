@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tzeva Adom Stats - Web Server
+Red Alert Stats - Web Server
 
 Run:  python app.py [--host HOST] [--port PORT] [--debug]
 Open: http://localhost:5000
@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 
 from flask import Flask, redirect, request, render_template
-from analyzer import fetch_alert_history, analyze_alerts, format_duration, build_oref_url
+from analyzer import fetch_alert_history, analyze_alerts, format_duration, build_home_front_command_url
 
 app = Flask(__name__)
 
@@ -37,7 +37,7 @@ def api_to_html_date(d: str) -> str:
 
 
 def html_to_api_date(d: str) -> str:
-    """'YYYY-MM-DD' → 'DD.MM.YYYY' for the Oref API."""
+    """'YYYY-MM-DD' → 'DD.MM.YYYY' for the Home Front Command API."""
     try:
         return datetime.strptime(d, '%Y-%m-%d').strftime('%d.%m.%Y')
     except Exception:
@@ -168,7 +168,7 @@ def report():
     try:
         alerts = fetch_alert_history(from_api, to_api, city, lang)
     except Exception as e:
-        return render_form(f'Failed to fetch data from the Oref API: {e}', status=502)
+        return render_form(f'Failed to fetch data from the Home Front Command API: {e}', status=502)
 
     if not alerts:
         return render_form(
@@ -196,14 +196,14 @@ def raw_data():
     from_v = from_html or api_to_html_date(DEFAULT_FROM)
     to_v   = to_html   or datetime.now().strftime('%Y-%m-%d')
 
-    oref_url = build_oref_url(html_to_api_date(from_v), html_to_api_date(to_v), city, lang)
-    return redirect(oref_url)
+    home_front_command_url = build_home_front_command_url(html_to_api_date(from_v), html_to_api_date(to_v), city, lang)
+    return redirect(home_front_command_url)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Tzeva Adom Stats web server')
+    parser = argparse.ArgumentParser(description='Red Alert Stats web server')
     parser.add_argument('--host', default='localhost', help='Host to bind to (default: localhost)')
     parser.add_argument('--port', type=int, default=5000, help='Port to listen on (default: 5000)')
     parser.add_argument('--debug', action='store_true', default=False, help='Enable Flask debug mode')

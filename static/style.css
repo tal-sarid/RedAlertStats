@@ -12,6 +12,55 @@
     --green:   #22c55e;
     --amber:   #f59e0b;
     --mono:    'Courier New', Courier, monospace;
+    color-scheme: dark;
+    /* badge / banner color tokens */
+    --c-red-bg: #2d0000;  --c-red-fg: #f87171;
+    --c-grn-bg: #052e16;  --c-grn-fg: #4ade80;
+    --c-amb-bg: #2d1700;  --c-amb-fg: #fbbf24;
+    --c-gray-bg: #1a1a1a; --c-gray-fg: #888;
+    --c-blue-bg: #0a1a3d; --c-blue-fg: #93c5fd;
+    --c-err-bg: #150303;  --c-err-br: #7f1d1d;  --c-err-fg: #fca5a5;
+}
+
+/* ── Light theme ── */
+[data-theme="light"] {
+    --bg:      #f8f9fa;
+    --surface: #ffffff;
+    --raised:  #f0f2f5;
+    --border:  #dde1e7;
+    --glow:    rgba(220, 38, 38, .2);
+    --text:    #111827;
+    --muted:   #6b7280;
+    --green:   #16a34a;
+    --amber:   #d97706;
+    color-scheme: light;
+    --c-red-bg: #fee2e2;  --c-red-fg: #991b1b;
+    --c-grn-bg: #dcfce7;  --c-grn-fg: #166534;
+    --c-amb-bg: #fef3c7;  --c-amb-fg: #92400e;
+    --c-gray-bg: #f3f4f6; --c-gray-fg: #6b7280;
+    --c-blue-bg: #dbeafe; --c-blue-fg: #1e40af;
+    --c-err-bg: #fef2f2;  --c-err-br: #fca5a5;  --c-err-fg: #991b1b;
+}
+
+@media (prefers-color-scheme: light) {
+    [data-theme="auto"] {
+        --bg:      #f8f9fa;
+        --surface: #ffffff;
+        --raised:  #f0f2f5;
+        --border:  #dde1e7;
+        --glow:    rgba(220, 38, 38, .2);
+        --text:    #111827;
+        --muted:   #6b7280;
+        --green:   #16a34a;
+        --amber:   #d97706;
+        color-scheme: light;
+        --c-red-bg: #fee2e2;  --c-red-fg: #991b1b;
+        --c-grn-bg: #dcfce7;  --c-grn-fg: #166534;
+        --c-amb-bg: #fef3c7;  --c-amb-fg: #92400e;
+        --c-gray-bg: #f3f4f6; --c-gray-fg: #6b7280;
+        --c-blue-bg: #dbeafe; --c-blue-fg: #1e40af;
+        --c-err-bg: #fef2f2;  --c-err-br: #fca5a5;  --c-err-fg: #991b1b;
+    }
 }
 
 body {
@@ -101,7 +150,6 @@ header .sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
     padding: .5rem .7rem;
     outline: none;
     transition: border-color .15s;
-    color-scheme: dark;
 }
 .fg input:focus,
 .fg select:focus { border-color: var(--accent); }
@@ -132,11 +180,11 @@ header .sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
 
 /* ── Error banner ── */
 .err-banner {
-    background: #150303;
-    border: 1px solid #7f1d1d;
+    background: var(--c-err-bg);
+    border: 1px solid var(--c-err-br);
     border-radius: 6px;
     padding: .85rem 1.1rem;
-    color: #fca5a5;
+    color: var(--c-err-fg);
     font-size: .875rem;
     margin-bottom: 1.4rem;
 }
@@ -205,11 +253,11 @@ header .sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
     padding: .15rem .5rem;
     border-radius: 3px;
 }
-.t-red  { background: #2d0000; color: #f87171; }
-.t-grn  { background: #052e16; color: #4ade80; }
-.t-amb  { background: #2d1700; color: #fbbf24; }
-.t-gray { background: #1a1a1a; color: #888; border: 1px solid var(--border); }
-.t-blue { background: #0a1a3d; color: #93c5fd; }
+.t-red  { background: var(--c-red-bg);  color: var(--c-red-fg); }
+.t-grn  { background: var(--c-grn-bg);  color: var(--c-grn-fg); }
+.t-amb  { background: var(--c-amb-bg);  color: var(--c-amb-fg); }
+.t-gray { background: var(--c-gray-bg); color: var(--c-gray-fg); border: 1px solid var(--border); }
+.t-blue { background: var(--c-blue-bg); color: var(--c-blue-fg); }
 
 /* ── Table ── */
 .tbl-wrap { overflow-x: auto; }
@@ -273,3 +321,24 @@ details:not([open]) > summary.card-title {
 details:not([open]) > summary.card-title::after {
     transform: rotate(-90deg);
 }
+
+/* ── Theme toggle ── */
+.theme-btn {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    padding: .32rem .65rem;
+    font-size: .72rem;
+    font-weight: 500;
+    transition: border-color .15s, color .15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.theme-btn:hover { border-color: var(--accent); color: var(--text); }
+.theme-btn svg { flex-shrink: 0; }

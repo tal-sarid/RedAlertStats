@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tzeva Adom Alert Analyzer - Analyze Israeli Oref alert data from Oref API.
+"""Red Alert Analyzer - Analyze Israeli Home Front Command alert data from its API.
 
 Usage:
   python analyzer.py --city "תל אביב - מרכז העיר"
@@ -18,7 +18,7 @@ from typing import List, Dict, Tuple, Optional, NamedTuple
 
 # Configuration constants
 HEADUP_TIMEOUT_SECONDS = 1800  # 30 minutes - how long a head-up warning remains valid
-ALERT_TZ = ZoneInfo('Asia/Jerusalem')  # All Oref alert timestamps are in Israel time
+ALERT_TZ = ZoneInfo('Asia/Jerusalem')  # All Home Front Command alert timestamps are in Israel time
 
 
 class ThreatPeriod(NamedTuple):
@@ -31,8 +31,8 @@ class ThreatPeriod(NamedTuple):
     ongoing: bool = False
 
 
-def build_oref_url(from_date: str, to_date: str, city_name: str, lang: str = 'he') -> str:
-    """Build the Oref alert history URL from API-format dates ('DD.MM.YYYY')."""
+def build_home_front_command_url(from_date: str, to_date: str, city_name: str, lang: str = 'he') -> str:
+    """Build the Home Front Command alert history URL from API-format dates ('DD.MM.YYYY')."""
     from urllib.parse import urlencode
     base = 'https://alerts-history.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx'
     params = urlencode({
@@ -47,7 +47,7 @@ def build_oref_url(from_date: str, to_date: str, city_name: str, lang: str = 'he
 
 def fetch_alert_history(from_date: str, to_date: str, city_name: str, lang: str = 'he') -> List[Dict]:
     """
-    Fetch alert history from the Oref API.
+    Fetch alert history from the Home Front Command API.
 
     Args:
         from_date: String in format 'DD.MM.YYYY'
@@ -59,7 +59,7 @@ def fetch_alert_history(from_date: str, to_date: str, city_name: str, lang: str 
         List of alert dictionaries
     """
     try:
-        response = requests.get(build_oref_url(from_date, to_date, city_name, lang), timeout=10)
+        response = requests.get(build_home_front_command_url(from_date, to_date, city_name, lang), timeout=10)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -337,7 +337,7 @@ def print_analysis_report(analysis: Dict) -> None:
 def main():
     script_name = os.path.basename(__file__)
     parser = argparse.ArgumentParser(
-        description='Analyze Tzeva Adom alert data from Oref API',
+        description='Analyze Red Alert data from the Home Front Command API',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f'''
 Examples:

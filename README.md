@@ -1,6 +1,6 @@
 # Red Alert Stats
 
-A small Python project for analyzing **Tzeva Adom (Oref)** alert history by city.
+A small Python project for analyzing **Red Alert (Home Front Command)** alert history by city.
 
 It includes:
 - A Flask web app to generate a visual report.
@@ -8,7 +8,7 @@ It includes:
 
 ## Features
 
-- Fetches alert history from the Oref alerts-history API.
+- Fetches alert history from the Home Front Command alerts-history API.
 - Analyzes threat periods (from threat start to all-clear).
 - Computes warning quality metrics:
   - true positives
@@ -142,7 +142,7 @@ static/            CSS assets
 
 ## Data Source
 
-Data is fetched from the public Oref alerts history endpoint:
+Data is fetched from the public Home Front Command alerts history endpoint:
 
 - https://alerts-history.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx
 

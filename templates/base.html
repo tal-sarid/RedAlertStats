@@ -3,21 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tzeva Adom Stats</title>
+    <title>Red Alert Stats</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>(function(){var t=localStorage.getItem('theme')||'auto';document.documentElement.dataset.theme=t;}());</script>
 </head>
 <body>
 <div class="container">
     <header>
         <div class="pulse"></div>
         <div>
-            <h1>Tzeva Adom Stats</h1>
-            <div class="sub">Israeli Oref Alert History Analyzer</div>
+            <h1>Red Alert Stats</h1>
+            <div class="sub">Israeli Home Front Command Alert History Analyzer</div>
         </div>
+        <button id="theme-btn" class="theme-btn" aria-label="Switch theme"></button>
     </header>
 
     {% block content %}{% endblock %}
 </div>
+<script>
+(function () {
+    var ORDER = ['auto', 'dark', 'light'];
+    var ICON = {
+        dark:  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+        light: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+        auto:  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke-linecap="round" aria-hidden="true"><path d="M12 5a7 7 0 0 0 0 14Z" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2"><line x1="20.5" y1="12" x2="23" y2="12"/><line x1="19.36" y1="7.75" x2="21.53" y2="6.5"/><line x1="16.25" y1="4.64" x2="17.5" y2="2.47"/><line x1="19.36" y1="16.25" x2="21.53" y2="17.5"/><line x1="16.25" y1="19.36" x2="17.5" y2="21.53"/></g></svg>'
+    };
+    var LABEL = { dark: 'Dark', light: 'Light', auto: 'Auto' };
+    var html  = document.documentElement;
+    var btn   = document.getElementById('theme-btn');
+
+    function apply(t) {
+        html.dataset.theme = t;
+        localStorage.setItem('theme', t);
+        btn.innerHTML = ICON[t] + '<span>' + LABEL[t] + '</span>';
+        btn.title = LABEL[t] + ' – click to cycle';
+    }
+
+    btn.addEventListener('click', function () {
+        apply(ORDER[(ORDER.indexOf(html.dataset.theme) + 1) % ORDER.length]);
+    });
+
+    // Initialise icon (theme already applied by the <head> script)
+    apply(html.dataset.theme || 'auto');
+
+    // Auto mode: CSS media-query handles the visual flip in real-time automatically.
+    // No extra JS needed — the browser re-evaluates @media (prefers-color-scheme)
+    // whenever the OS setting changes, updating all CSS custom properties instantly.
+}());
+</script>
 </body>
 </html>
