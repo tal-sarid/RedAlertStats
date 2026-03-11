@@ -122,13 +122,21 @@ header .sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
 /* ── Form ── */
 .form-row {
     display: grid;
-    grid-template-columns: 1.4fr 2fr 1fr 1fr auto;
+    grid-template-columns: 0.9fr 2fr 1.1fr 1.1fr auto;
     gap: .8rem;
     align-items: end;
 }
+.form-row > * { min-width: 0; }
 @media (max-width: 750px) {
     .form-row { grid-template-columns: 1fr 1fr; }
-    .form-row .btn { grid-column: 1 / -1; }
+    .form-btns { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+    .form-row { grid-template-columns: 1fr; }
+    .form-btns {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
 }
 .fg label {
     display: block;
@@ -142,6 +150,7 @@ header .sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
 .fg input,
 .fg select {
     width: 100%;
+    min-width: 0;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 5px;
