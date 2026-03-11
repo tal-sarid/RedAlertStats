@@ -10,18 +10,18 @@ import argparse
 import os
 from datetime import datetime
 
-from flask import Flask, request, render_template
-from analyzer import fetch_alert_history, analyze_alerts, format_duration
+from flask import Flask, redirect, request, render_template
+from analyzer import fetch_alert_history, analyze_alerts, format_duration, build_oref_url
 
 app = Flask(__name__)
 
 DEFAULT_FROM = '28.02.2026'
 
 LANG_OPTIONS = [
-    ('he', 'Hebrew (עברית)'),
+    ('he', 'עברית'),
     ('en', 'English'),
-    ('ru', 'Russian (Русский)'),
-    ('ar', 'Arabic (العربية)'),
+    ('ru', 'Русский'),
+    ('ar', 'العربية'),
 ]
 LANG_NAMES = dict(LANG_OPTIONS)
 
@@ -184,6 +184,20 @@ def report():
         **build_report_ctx(analysis, city, from_api, to_api, lang),
     }
     return render_template('report.html', **ctx)
+
+
+@app.route('/raw-data')
+def raw_data():
+    city      = request.args.get('city', '').strip()
+    from_html = request.args.get('from_date', '')
+    to_html   = request.args.get('to_date', '')
+    lang      = request.args.get('lang', 'he')
+
+    from_v = from_html or api_to_html_date(DEFAULT_FROM)
+    to_v   = to_html   or datetime.now().strftime('%Y-%m-%d')
+
+    oref_url = build_oref_url(html_to_api_date(from_v), html_to_api_date(to_v), city, lang)
+    return redirect(oref_url)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

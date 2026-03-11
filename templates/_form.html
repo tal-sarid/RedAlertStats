@@ -7,6 +7,14 @@
     <form method="get" action="/report">
         <div class="form-row">
             <div class="fg">
+                <label>Language</label>
+                <select name="lang">
+                    {% for code, label in lang_options %}
+                    <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="fg">
                 <label>City Name</label>
                 <input type="text" name="city" value="{{ city }}"
                        placeholder="e.g. Tel Aviv - City Center" required>
@@ -19,15 +27,11 @@
                 <label>To</label>
                 <input type="date" name="to_date" value="{{ to_val }}" required>
             </div>
-            <div class="fg">
-                <label>Language</label>
-                <select name="lang">
-                    {% for code, label in lang_options %}
-                    <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
+            <div class="form-btns">
+                <button type="submit" class="btn">Generate</button>
+                <button type="submit" formaction="/raw-data" formtarget="_blank"
+                        class="btn btn-outline">View Raw Data</button>
             </div>
-            <button type="submit" class="btn">Generate</button>
         </div>
     </form>
 </div>

@@ -31,6 +31,20 @@ class ThreatPeriod(NamedTuple):
     ongoing: bool = False
 
 
+def build_oref_url(from_date: str, to_date: str, city_name: str, lang: str = 'he') -> str:
+    """Build the Oref alert history URL from API-format dates ('DD.MM.YYYY')."""
+    from urllib.parse import urlencode
+    base = 'https://alerts-history.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx'
+    params = urlencode({
+        'lang':     lang,
+        'fromDate': from_date,
+        'toDate':   to_date,
+        'mode':     3,
+        'city_0':   city_name,
+    })
+    return f'{base}?{params}'
+
+
 def fetch_alert_history(from_date: str, to_date: str, city_name: str, lang: str = 'he') -> List[Dict]:
     """
     Fetch alert history from the Oref API.
@@ -44,18 +58,8 @@ def fetch_alert_history(from_date: str, to_date: str, city_name: str, lang: str 
     Returns:
         List of alert dictionaries
     """
-    base_url = 'https://alerts-history.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx'
-
-    params = {
-        'lang': lang,
-        'fromDate': from_date,
-        'toDate': to_date,
-        'mode': 3,
-        'city_0': city_name
-    }
-
     try:
-        response = requests.get(base_url, params=params, timeout=10)
+        response = requests.get(build_oref_url(from_date, to_date, city_name, lang), timeout=10)
         response.raise_for_status()
         return response.json()
     except Exception as e:
