@@ -17,6 +17,24 @@ app = Flask(__name__)
 
 DEFAULT_FROM = '28.02.2026'
 
+
+def _rle_alert_sequence(seq):
+    """Run-length encode an alert category sequence.
+    Returns a list of dicts: [{'cat': int, 'count': int}, ...]
+    """
+    if not seq:
+        return []
+    result = []
+    current, count = seq[0], 1
+    for item in seq[1:]:
+        if item == current:
+            count += 1
+        else:
+            result.append({'cat': current, 'count': count})
+            current, count = item, 1
+    result.append({'cat': current, 'count': count})
+    return result
+
 LANG_OPTIONS = [
     ('he', 'עברית'),
     ('en', 'English'),
@@ -91,19 +109,24 @@ def build_report_ctx(analysis: dict, city: str, from_api: str,
             'ongoing':           p.ongoing,
             'warn_lead':         warn_lead,
             'consecutive_count': p.consecutive_count,
+            'alert_icons':       _rle_alert_sequence(p.alert_sequence),
         })
 
-    fp_rows = [
+    all_warnings = analysis['warnings']  # {datetime -> is_true_positive}
+    warning_rows = [
         {
             'index':     i,
             'timestamp': ts.strftime('%Y-%m-%d %H:%M:%S') if ts else '—',
+            'is_tp':     is_tp,
         }
-        for i, (_, ts, _cat) in enumerate(fp_warnings, 1)
+        for i, (ts, is_tp) in enumerate(
+            sorted(all_warnings.items(), key=lambda x: x[0]), 1
+        )
     ]
 
     # Newest first; indices already reflect chronological order (1 = oldest)
     period_rows.reverse()
-    fp_rows.reverse()
+    warning_rows.reverse()
 
     tcp = analysis['category_counts']
 
@@ -130,7 +153,7 @@ def build_report_ctx(analysis: dict, city: str, from_api: str,
         'cat_headup':          tcp.get(14, 0),
         'true_positive_count': warn_count - fp_count,
         'period_rows':         period_rows,
-        'fp_rows':             fp_rows,
+        'warning_rows':        warning_rows,
     }
 
 

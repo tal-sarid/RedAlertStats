@@ -29,6 +29,7 @@ class ThreatPeriod(NamedTuple):
     warning_time: Optional[datetime]
     consecutive_count: int
     ongoing: bool = False
+    alert_sequence: tuple = ()  # Chronological list of alert categories (1 or 2) in this period
 
 
 def build_home_front_command_url(from_date: str, to_date: str, city_name: str, lang: str = 'he') -> str:
@@ -133,6 +134,7 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
     active_threat_count = 0
     active_threat_had_warning = False
     active_threat_warning_time = None
+    active_threat_sequence = []  # Chronological alert categories for the current period
     last_period_end_dt = None  # Warnings before this time are already consumed by a previous period
 
     for alert in alerts_sorted:
@@ -152,6 +154,7 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
                 active_threat_count = 1
                 active_threat_had_warning = False
                 active_threat_warning_time = None
+                active_threat_sequence = [category]
                 
                 # Mark matching warnings as true positives (only fresh ones, after the last all-clear)
                 for warning_dt in warnings:
@@ -164,6 +167,7 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
             else:
                 # Continue existing threat period
                 active_threat_count += 1
+                active_threat_sequence.append(category)
                 
                 # Also mark newer warnings as true positives (same freshness guard as above)
                 for warning_dt in warnings:
@@ -183,7 +187,8 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
                     duration=duration,
                     had_warning=active_threat_had_warning,
                     warning_time=active_threat_warning_time,
-                    consecutive_count=active_threat_count
+                    consecutive_count=active_threat_count,
+                    alert_sequence=tuple(active_threat_sequence)
                 ))
                 
                 last_period_end_dt = alert_datetime
@@ -191,6 +196,7 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
                 active_threat_count = 0
                 active_threat_had_warning = False
                 active_threat_warning_time = None
+                active_threat_sequence = []
             else:
                 # All-clear with no active threat: the preceding warning window is closed,
                 # so warnings before this point are no longer eligible as head-ups
@@ -210,7 +216,8 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
             had_warning=active_threat_had_warning,
             warning_time=active_threat_warning_time,
             consecutive_count=active_threat_count,
-            ongoing=True
+            ongoing=True,
+            alert_sequence=tuple(active_threat_sequence)
         ))
 
     periods_with_headup = sum(1 for period in threat_periods if period.had_warning)
@@ -325,11 +332,14 @@ def print_analysis_report(analysis: Dict) -> None:
             period_info += f" [{', '.join(additional_info)}]"
             print(f"    {period_info}")
     
-    # Show false positive warnings if any exist
-    if false_positive_warnings:
-        print(f"\n  False positive warnings (not followed by threats):")
-        for city, timestamp, category in false_positive_warnings:
-            print(f"    {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+    # Show all warnings with true/false positive labels
+    all_warnings = analysis['warnings']
+    if all_warnings:
+        print(f"\n  Warning head-up log ({len(all_warnings)} total):")
+        for ts in sorted(all_warnings):
+            is_tp = all_warnings[ts]
+            label = "[true positive] " if is_tp else "[false positive]"
+            print(f"    {ts.strftime('%Y-%m-%d %H:%M:%S')}  {label}")
 
     print("")
 

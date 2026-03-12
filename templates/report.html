@@ -46,40 +46,40 @@
     <div class="det-grid">
         <div>
             <div class="dr">
-                <span class="dl">Rocket fire (cat.&nbsp;1)</span>
+                <span class="dl">🚀 Rocket fire</span>
                 <span class="dv">{{ cat_rocket }}</span>
             </div>
             <div class="dr">
-                <span class="dl">Enemy aircraft (cat.&nbsp;2)</span>
+                <span class="dl">✈️ Enemy aircraft</span>
                 <span class="dv">{{ cat_aircraft }}</span>
             </div>
             <div class="dr">
-                <span class="dl">All-clear events (cat.&nbsp;13)</span>
+                <span class="dl">🟢 All-clear events</span>
                 <span class="dv">{{ cat_allclear }}</span>
             </div>
             <div class="dr">
-                <span class="dl">Head-up warnings (cat.&nbsp;14)</span>
+                <span class="dl">⚠️ Head-up warnings</span>
                 <span class="dv">{{ cat_headup }}</span>
             </div>
         </div>
         <div>
             <div class="dr">
-                <span class="dl">True positive warnings</span>
+                <span class="dl">🎯 True positive warnings</span>
                 <span class="dv">{{ true_positive_count }}</span>
             </div>
             <div class="dr">
-                <span class="dl">False positive warnings</span>
+                <span class="dl">❌ False positive warnings</span>
                 <span class="dv">
                     {{ fp_count }}&ensp;
                     <span class="tag t-amb">{{ '%.1f' | format(fp_ratio) }}%</span>
                 </span>
             </div>
             <div class="dr">
-                <span class="dl">Avg warning lead time</span>
+                <span class="dl">⏱️ Avg warning lead time</span>
                 <span class="dv">{{ avg_lead }}</span>
             </div>
             <div class="dr">
-                <span class="dl">Max shelter duration</span>
+                <span class="dl">🛡️ Max shelter duration</span>
                 <span class="dv">{{ max_dur }}</span>
             </div>
         </div>
@@ -90,7 +90,7 @@
 <div class="card">
     <details>
         <summary class="card-title">
-            Shelter Periods
+            ⛑️ Shelter Periods
             {% if period_count %}&mdash; {{ period_count }}{% endif %}
         </summary>
 
@@ -130,9 +130,20 @@
                             <span class="tag t-red">surprise</span>
                         {% endif %}
                     </td>
-                    <td>
-                        {% if p.consecutive_count > 1 %}
-                            <span class="tag t-blue">{{ p.consecutive_count }}&times;</span>
+                    <td class="alert-seq">
+                        {% if p.alert_icons %}
+                            {% for item in p.alert_icons %}
+                                {% if item.cat == 1 %}
+                                    <span class="ai ai-rocket" title="Rocket fire">🚀</span>
+                                {% elif item.cat == 2 %}
+                                    <span class="ai ai-aircraft" title="Enemy aircraft">✈️</span>
+                                {% else %}
+                                    <span class="ai" title="Cat {{ item.cat }}">⚠️</span>
+                                {% endif %}
+                                {% if item.count > 1 %}
+                                    <span class="tag t-blue">&times;{{ item.count }}</span>
+                                {% endif %}
+                            {% endfor %}
                         {% else %}
                             &mdash;
                         {% endif %}
@@ -148,21 +159,31 @@
     </details>
 </div>
 
-{# ── False positive warnings ─────────────────────────────────────────────── #}
-{% if fp_rows %}
+{# ── Head-up warnings ───────────────────────────────────────────────────── #}
+{% if warning_rows %}
 <div class="card">
     <details>
-        <summary class="card-title">False Positive Warnings &mdash; {{ fp_count }}</summary>
+        <summary class="card-title">
+            ⚠️ Head-up Warnings
+            {% if warning_count %}&mdash; {{ warning_count }}{% endif %}
+        </summary>
     <div class="tbl-wrap">
         <table>
             <thead>
-                <tr><th>#</th><th>Timestamp</th></tr>
+                <tr><th>#</th><th>Timestamp</th><th>Result</th></tr>
             </thead>
             <tbody>
-                {% for w in fp_rows %}
+                {% for w in warning_rows %}
                 <tr>
                     <td>{{ w.index }}</td>
                     <td class="nw">{{ w.timestamp }}</td>
+                    <td>
+                        {% if w.is_tp %}
+                            <span class="tag t-grn">🎯 true positive</span>
+                        {% else %}
+                            <span class="tag t-red">❌ false positive</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
