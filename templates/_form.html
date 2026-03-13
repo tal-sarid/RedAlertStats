@@ -17,7 +17,9 @@
             <div class="fg">
                 <label>City Name</label>
                 <input type="text" name="city" value="{{ city }}"
-                       placeholder="e.g. Tel Aviv - City Center" required>
+                       placeholder="e.g. Tel Aviv - City Center" required
+                       list="city-suggestions" autocomplete="off">
+                <datalist id="city-suggestions"></datalist>
             </div>
             <div class="fg">
                 <label>From</label>
@@ -35,3 +37,36 @@
         </div>
     </form>
 </div>
+
+<script>
+(function () {
+    var langSel = document.querySelector('select[name="lang"]');
+    var datalist = document.getElementById('city-suggestions');
+    if (!datalist) return;
+
+    function loadDistricts(lang) {
+        fetch('/api/districts?lang=' + encodeURIComponent(lang))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                datalist.innerHTML = '';
+                data.forEach(function (item) {
+                    var val = typeof item === 'string' ? item : (item.label || '');
+                    if (val) {
+                        var opt = document.createElement('option');
+                        opt.value = val;
+                        datalist.appendChild(opt);
+                    }
+                });
+            })
+            .catch(function () {});
+    }
+
+    loadDistricts(langSel ? langSel.value : 'he');
+
+    if (langSel) {
+        langSel.addEventListener('change', function () {
+            loadDistricts(langSel.value);
+        });
+    }
+}());
+</script>

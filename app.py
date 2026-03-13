@@ -10,7 +10,8 @@ import argparse
 import os
 from datetime import datetime
 
-from flask import Flask, redirect, request, render_template
+import requests
+from flask import Flask, jsonify, redirect, request, render_template
 from analyzer import fetch_alert_history, analyze_alerts, format_duration, build_home_front_command_url
 
 app = Flask(__name__)
@@ -207,6 +208,23 @@ def report():
         **build_report_ctx(analysis, city, from_api, to_api, lang),
     }
     return render_template('report.html', **ctx)
+
+
+@app.route('/api/districts')
+def api_districts():
+    lang = request.args.get('lang', 'he')
+    if lang not in LANG_NAMES:
+        lang = 'he'
+    try:
+        resp = requests.get(
+            'https://alerts-history.oref.org.il/Shared/Ajax/GetDistricts.aspx',
+            params={'lang': lang},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return jsonify(resp.json())
+    except Exception:
+        return jsonify([]), 502
 
 
 @app.route('/raw-data')
