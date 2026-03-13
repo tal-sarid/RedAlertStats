@@ -15,17 +15,28 @@
                 <datalist id="city-suggestions"></datalist>
             </div>
             <div class="fg">
-                <label>{{ t.from_ }}</label>
-                <input type="date" name="from_date" value="{{ from_val }}" required>
-            </div>
-            <div class="fg">
-                <label>{{ t.to_ }}</label>
-                <input type="date" name="to_date" value="{{ to_val }}" required>
+                <label>{{ t.mode_label }}</label>
+                <select name="mode" id="mode-select">
+                    <option value="1" {% if mode == 1 %}selected{% endif %}>{{ t.mode_1 }}</option>
+                    <option value="2" {% if mode == 2 %}selected{% endif %}>{{ t.mode_2 }}</option>
+                    <option value="3" {% if mode == 3 %}selected{% endif %}>{{ t.mode_3 }}</option>
+                    <option value="0" {% if mode == 0 %}selected{% endif %}>{{ t.mode_0 }}</option>
+                </select>
             </div>
             <div class="form-btns">
                 <button type="submit" class="btn">{{ t.generate }}</button>
                 <button type="submit" formaction="/raw-data" formtarget="_blank"
                         class="btn btn-outline">{{ t.view_raw }}</button>
+            </div>
+            <div id="date-range-fields">
+                <div class="fg">
+                    <label>{{ t.from_ }}</label>
+                    <input type="date" name="from_date" id="from-date" value="{{ from_val }}">
+                </div>
+                <div class="fg">
+                    <label>{{ t.to_ }}</label>
+                    <input type="date" name="to_date" id="to-date" value="{{ to_val }}">
+                </div>
             </div>
         </div>
     </form>
@@ -35,25 +46,49 @@
 (function () {
     var langSel = document.getElementById('lang-switcher');
     var datalist = document.getElementById('city-suggestions');
-    if (!datalist) return;
-
-    function loadDistricts(lang) {
-        fetch('/api/districts?lang=' + encodeURIComponent(lang))
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                datalist.innerHTML = '';
-                data.forEach(function (item) {
-                    var val = typeof item === 'string' ? item : (item.label || '');
-                    if (val) {
-                        var opt = document.createElement('option');
-                        opt.value = val;
-                        datalist.appendChild(opt);
-                    }
-                });
-            })
-            .catch(function () {});
+    if (datalist) {
+        function loadDistricts(lang) {
+            fetch('/api/districts?lang=' + encodeURIComponent(lang))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    datalist.innerHTML = '';
+                    data.forEach(function (item) {
+                        var val = typeof item === 'string' ? item : (item.label || '');
+                        if (val) {
+                            var opt = document.createElement('option');
+                            opt.value = val;
+                            datalist.appendChild(opt);
+                        }
+                    });
+                })
+                .catch(function () {});
+        }
+        loadDistricts(langSel ? langSel.value : '{{ lang }}');
     }
 
-    loadDistricts(langSel ? langSel.value : '{{ lang }}');
+    function toggleDateRange(modeVal) {
+        var el       = document.getElementById('date-range-fields');
+        var fromInput = document.getElementById('from-date');
+        var toInput   = document.getElementById('to-date');
+        if (modeVal === '0') {
+            el.style.display  = '';
+            fromInput.disabled = false;
+            fromInput.required = true;
+            toInput.disabled   = false;
+            toInput.required   = true;
+        } else {
+            el.style.display  = 'none';
+            fromInput.disabled = true;
+            fromInput.required = false;
+            toInput.disabled   = true;
+            toInput.required   = false;
+        }
+    }
+
+    var modeSelect = document.getElementById('mode-select');
+    if (modeSelect) {
+        modeSelect.addEventListener('change', function () { toggleDateRange(this.value); });
+        toggleDateRange(modeSelect.value);
+    }
 }());
 </script>

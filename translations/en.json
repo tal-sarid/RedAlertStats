@@ -53,7 +53,13 @@
     "theme_light":            "Light",
     "theme_auto":             "Auto",
     "theme_cycle":            " – click to cycle theme",
+    "mode_label":             "Time Range",
+    "mode_0":                 "Custom date range",
+    "mode_1":                 "Past 24 hours",
+    "mode_2":                 "Past week",
+    "mode_3":                 "Past month",
     "err_city_required":      "City name is required.",
     "err_fetch_failed":       "Failed to fetch data from the Home Front Command API: {detail}",
-    "err_no_records":         "No alert records found for \u201c{city}\u201d between {from_date} and {to_date}. Verify the city name spelling \u2014 it must match the selected language."
+    "err_no_records":         "No alert records found for \u201c{city}\u201d between {from_date} and {to_date}. Verify the city name spelling \u2014 it must match the selected language.",
+    "err_no_records_preset":  "No alert records found for \u201c{city}\u201d. Verify the city name spelling \u2014 it must match the selected language."
 }

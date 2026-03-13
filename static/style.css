@@ -122,20 +122,32 @@ header .sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
 /* ── Form ── */
 .form-row {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr auto;
+    grid-template-columns: 2fr 1fr auto;
     gap: .8rem;
     align-items: end;
 }
 .form-row > * { min-width: 0; }
+#date-range-fields {
+    grid-column: 2 / span 2;
+    display: flex;
+    gap: .8rem;
+}
+#date-range-fields .fg { flex: 1; }
 @media (max-width: 750px) {
     .form-row { grid-template-columns: 1fr 1fr; }
     .form-btns { grid-column: 1 / -1; }
+    #date-range-fields { grid-column: 1 / -1; }
 }
 @media (max-width: 560px) {
     .form-row { grid-template-columns: 1fr; }
+    #date-range-fields {
+        flex-direction: column;
+        order: 3;
+    }
     .form-btns {
         display: grid;
         grid-template-columns: 1fr;
+        order: 4;
     }
 }
 .fg label {
@@ -179,7 +191,7 @@ header .sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
 .btn:hover  { background: #b91c1c; transform: translateY(-1px); }
 .btn:active { transform: none; }
 
-.form-btns { display: flex; gap: .5rem; }
+.form-btns { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
 .btn-outline {
     background: transparent;
     border: 1px solid var(--accent);

@@ -8,9 +8,13 @@
     <h2>{{ city_display }}</h2>
     <div class="meta">
         <span class="date-range">
-            <span class="dt-ltr">{{ from_date }}</span>
-            {% if dir == 'rtl' %}&larr;{% else %}&rarr;{% endif %}
-            <span class="dt-ltr">{{ to_date }}</span>
+            {% if mode == 0 %}
+                <span class="dt-ltr">{{ from_date }}</span>
+                {% if dir == 'rtl' %}&larr;{% else %}&rarr;{% endif %}
+                <span class="dt-ltr">{{ to_date }}</span>
+            {% else %}
+                {{ mode_label }}
+            {% endif %}
         </span>
         &nbsp;&middot;&nbsp; {{ lang_name }}
         &nbsp;&middot;&nbsp; {{ total_records }} {{ t.records }}

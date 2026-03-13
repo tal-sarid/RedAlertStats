@@ -4,7 +4,8 @@
 Usage:
   python analyzer.py --city "תל אביב - מרכז העיר"
   python analyzer.py --city "Tel Aviv - City Center" --lang en
-  python analyzer.py --from-date 01.03.2026 --to-date 10.03.2026 --city "תל אביב - מרכז העיר"
+  python analyzer.py --mode 24h --city "תל אביב - מרכז העיר"
+  python analyzer.py --mode custom --from-date 01.03.2026 --to-date 10.03.2026 --city "תל אביב - מרכז העיר"
 """
 
 import json
@@ -32,21 +33,21 @@ class ThreatPeriod(NamedTuple):
     alert_sequence: tuple = ()  # Chronological list of alert categories (1 or 2) in this period
 
 
-def build_home_front_command_url(from_date: str, to_date: str, city_name: str, lang: str = 'he') -> str:
-    """Build the Home Front Command alert history URL from API-format dates ('DD.MM.YYYY')."""
+def build_home_front_command_url(from_date: str, to_date: str, city_name: str, lang: str = 'he', mode: int = 0) -> str:
+    """Build the Home Front Command alert history URL from API-format dates ('DD.MM.YYYY').
+
+    mode: 0=custom date range, 1=past 24h, 2=past week, 3=past month
+    """
     from urllib.parse import urlencode
     base = 'https://alerts-history.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx'
-    params = urlencode({
-        'lang':     lang,
-        'fromDate': from_date,
-        'toDate':   to_date,
-        'mode':     3,
-        'city_0':   city_name,
-    })
-    return f'{base}?{params}'
+    p: dict = {'lang': lang, 'mode': mode, 'city_0': city_name}
+    if mode == 0:
+        p['fromDate'] = from_date
+        p['toDate']   = to_date
+    return f'{base}?{urlencode(p)}'
 
 
-def fetch_alert_history(from_date: str, to_date: str, city_name: str, lang: str = 'he') -> List[Dict]:
+def fetch_alert_history(from_date: str, to_date: str, city_name: str, lang: str = 'he', mode: int = 0) -> List[Dict]:
     """
     Fetch alert history from the Home Front Command API.
 
@@ -55,12 +56,13 @@ def fetch_alert_history(from_date: str, to_date: str, city_name: str, lang: str 
         to_date: String in format 'DD.MM.YYYY'
         city_name: City name in the specified language
         lang: Language code (default: 'he' for Hebrew)
+        mode: API mode (0=custom date range, 1=past 24h, 2=past week, 3=past month)
 
     Returns:
         List of alert dictionaries
     """
     try:
-        response = requests.get(build_home_front_command_url(from_date, to_date, city_name, lang), timeout=10)
+        response = requests.get(build_home_front_command_url(from_date, to_date, city_name, lang, mode), timeout=10)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -367,7 +369,10 @@ def main():
 Examples:
   python {script_name} --city "תל אביב - מרכז העיר"
   python {script_name} --city "Tel Aviv - City Center" --lang en
-  python {script_name} --from-date 01.03.2026 --to-date 10.03.2026 --city "תל אביב - מרכז העיר"
+  python {script_name} --mode 24h --city "תל אביב - מרכז העיר"
+  python {script_name} --mode week --city "תל אביב - מרכז העיר"
+  python {script_name} --mode month --city "תל אביב - מרכז העיר"
+  python {script_name} --mode custom --from-date 01.03.2026 --to-date 10.03.2026 --city "תל אביב - מרכז העיר"
         '''
     )
     parser.add_argument(
@@ -378,7 +383,13 @@ Examples:
     parser.add_argument(
         '--to-date',
         default=datetime.now().strftime('%d.%m.%Y'),
-        help='End date in DD.MM.YYYY format (default: today)'
+        help='End date in DD.MM.YYYY format (default: today). Only used with --mode custom.'
+    )
+    parser.add_argument(
+        '--mode',
+        choices=['custom', '24h', 'week', 'month'],
+        default='custom',
+        help='Time range: custom (date range, default), 24h (past 24 hours), week (past week), month (past month)'
     )
     parser.add_argument(
         '--city',
@@ -406,6 +417,8 @@ Examples:
     to_date = args.to_date
     city_name = args.city
     lang = args.lang
+    mode_map = {'custom': 0, '24h': 1, 'week': 2, 'month': 3}
+    mode = mode_map[args.mode]
     raw_output_path = args.raw_output
     raw_input_path = args.raw_input
 
@@ -420,8 +433,9 @@ Examples:
         if not city_name:
             print("ERROR: --city is required when not using --raw-input")
             return
-        print(f"\nFetching alerts from {from_date} to {to_date} for: {city_name}")
-        alerts = fetch_alert_history(from_date, to_date, city_name, lang)
+        mode_label = {'custom': 'custom range', '24h': 'past 24h', 'week': 'past week', 'month': 'past month'}.get(args.mode, args.mode)
+        print(f"\nFetching alerts ({mode_label}) for: {city_name}")
+        alerts = fetch_alert_history(from_date, to_date, city_name, lang, mode)
         if not alerts:
             print(f"ERROR: No alerts found. Check city name spelling (must be in {lang.upper()} language)")
             return

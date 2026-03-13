@@ -81,7 +81,7 @@ def html_to_api_date(d: str) -> str:
 
 # ── Template context builders ─────────────────────────────────────────────────
 
-def form_ctx(city='', from_val='', to_val='', lang='he', error='') -> dict:
+def form_ctx(city='', from_val='', to_val='', lang='he', error='', mode=3) -> dict:
     """Base context shared by all pages (populates the query form)."""
     return {
         'city':         city,
@@ -93,11 +93,12 @@ def form_ctx(city='', from_val='', to_val='', lang='he', error='') -> dict:
         't':            get_t(lang),
         'dir':          'rtl' if get_t(lang).get('rtl') else 'ltr',
         'arabic_nums':  'true' if get_t(lang).get('arabic_numerals') else 'false',
+        'mode':         mode,
     }
 
 
 def build_report_ctx(analysis: dict, city: str, from_api: str,
-                     to_api: str, lang: str) -> dict:
+                     to_api: str, lang: str, mode: int = 0) -> dict:
     """Flatten analysis data into plain values the report template can render."""
     t = get_t(lang)
     periods     = analysis['threat_periods']
@@ -174,6 +175,8 @@ def build_report_ctx(analysis: dict, city: str, from_api: str,
         'true_positive_count': warn_count - fp_count,
         'period_rows':         period_rows,
         'warning_rows':        warning_rows,
+        'mode':                mode,
+        'mode_label':          t.get(f'mode_{mode}', ''),
     }
 
 
@@ -182,10 +185,17 @@ def build_report_ctx(analysis: dict, city: str, from_api: str,
 @app.route('/')
 def index():
     lang = request.args.get('lang', 'he')
+    try:
+        mode = int(request.args.get('mode', 3))
+        if mode not in (0, 1, 2, 3):
+            mode = 3
+    except (ValueError, TypeError):
+        mode = 3
     ctx = form_ctx(
         lang=lang,
         from_val=api_to_html_date(DEFAULT_FROM),
         to_val=datetime.now().strftime('%Y-%m-%d'),
+        mode=mode,
     )
     return render_template('index.html', **ctx)
 
@@ -196,13 +206,19 @@ def report():
     from_html = request.args.get('from_date', '')
     to_html   = request.args.get('to_date', '')
     lang      = request.args.get('lang', 'he')
+    try:
+        mode = int(request.args.get('mode', 3))
+        if mode not in (0, 1, 2, 3):
+            mode = 3
+    except (ValueError, TypeError):
+        mode = 3
 
     from_v = from_html or api_to_html_date(DEFAULT_FROM)
     to_v   = to_html   or datetime.now().strftime('%Y-%m-%d')
     t      = get_t(lang)
 
     def render_form(error='', status=200):
-        ctx = form_ctx(city=city, from_val=from_v, to_val=to_v, lang=lang, error=error)
+        ctx = form_ctx(city=city, from_val=from_v, to_val=to_v, lang=lang, error=error, mode=mode)
         return render_template('index.html', **ctx), status
 
     if not city:
@@ -212,22 +228,29 @@ def report():
     to_api   = html_to_api_date(to_v)
 
     try:
-        alerts = fetch_alert_history(from_api, to_api, city, lang)
+        alerts = fetch_alert_history(from_api, to_api, city, lang, mode)
     except Exception as e:
         msg = t.get('err_fetch_failed', 'Failed to fetch data from the Home Front Command API: {detail}')
         return render_form(msg.format(detail=e), status=502)
 
     if not alerts:
-        msg = t.get('err_no_records',
-                    'No alert records found for \u201c{city}\u201d between {from_date} and {to_date}. '
-                    'Verify the city name spelling \u2014 it must match the selected language.')
-        return render_form(msg.format(city=city, from_date=from_api, to_date=to_api))
+        if mode == 0:
+            msg = t.get('err_no_records',
+                        'No alert records found for \u201c{city}\u201d between {from_date} and {to_date}. '
+                        'Verify the city name spelling \u2014 it must match the selected language.')
+            error_str = msg.format(city=city, from_date=from_api, to_date=to_api)
+        else:
+            msg = t.get('err_no_records_preset',
+                        'No alert records found for \u201c{city}\u201d. '
+                        'Verify the city name spelling \u2014 it must match the selected language.')
+            error_str = msg.format(city=city)
+        return render_form(error_str)
 
     analysis = analyze_alerts(alerts, city_filter=city)
 
     ctx = {
-        **form_ctx(city=city, from_val=from_v, to_val=to_v, lang=lang),
-        **build_report_ctx(analysis, city, from_api, to_api, lang),
+        **form_ctx(city=city, from_val=from_v, to_val=to_v, lang=lang, mode=mode),
+        **build_report_ctx(analysis, city, from_api, to_api, lang, mode),
     }
     return render_template('report.html', **ctx)
 
@@ -255,11 +278,17 @@ def raw_data():
     from_html = request.args.get('from_date', '')
     to_html   = request.args.get('to_date', '')
     lang      = request.args.get('lang', 'he')
+    try:
+        mode = int(request.args.get('mode', 3))
+        if mode not in (0, 1, 2, 3):
+            mode = 3
+    except (ValueError, TypeError):
+        mode = 3
 
     from_v = from_html or api_to_html_date(DEFAULT_FROM)
     to_v   = to_html   or datetime.now().strftime('%Y-%m-%d')
 
-    home_front_command_url = build_home_front_command_url(html_to_api_date(from_v), html_to_api_date(to_v), city, lang)
+    home_front_command_url = build_home_front_command_url(html_to_api_date(from_v), html_to_api_date(to_v), city, lang, mode)
     return redirect(home_front_command_url)
 
 

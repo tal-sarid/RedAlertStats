@@ -9,6 +9,7 @@ It includes:
 ## Features
 
 - Fetches alert history from the Home Front Command alerts-history API.
+- Four query modes: past 24 hours, past week, past month, or a custom date range.
 - Analyzes threat periods (from threat start to all-clear).
 - Computes warning quality metrics:
   - true positives
@@ -97,12 +98,21 @@ Then open:
 
 Use the form to choose:
 - City name
-- Date range
+- Time range (see modes below)
 - Language
 
 Notes:
 - City name must match the selected language used by the API.
-- Default start date is `28.02.2026`.
+- The default time range is **Past month**.
+
+### Time range modes
+
+| Mode | Description |
+|------|-------------|
+| Past 24 hours | Last 24 hours of alerts |
+| Past week | Last 7 days of alerts |
+| Past month | Last month of alerts (default) |
+| Custom date range | Explicit start and end dates (`DD.MM.YYYY`). |
 
 ## CLI Usage
 
@@ -111,17 +121,23 @@ Basic examples:
 ```bash
 python analyzer.py --city "תל אביב - מרכז העיר"
 python analyzer.py --city "Tel Aviv - City Center" --lang en
-python analyzer.py --from-date 01.03.2026 --to-date 10.03.2026 --city "תל אביב - מרכז העיר"
+python analyzer.py --mode 24h --city "תל אביב - מרכז העיר"
+python analyzer.py --mode week --city "תל אביב - מרכז העיר"
+python analyzer.py --mode month --city "תל אביב - מרכז העיר"
+python analyzer.py --mode custom --from-date 01.03.2026 --to-date 10.03.2026 --city "תל אביב - מרכז העיר"
 ```
 
 Available options:
 
-- `--city`: city name in the selected language
-- `--lang`: API language (`he`, `en`, `ru`, `ar`)
-- `--from-date`: start date (`DD.MM.YYYY`)
-- `--to-date`: end date (`DD.MM.YYYY`)
-- `--raw-output FILE`: save fetched raw API data as pretty JSON
-- `--raw-input FILE`: load alerts from local JSON instead of API
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--city` | — | City name in the selected language |
+| `--lang` | `he` | API language (`he`, `en`, `ru`, `ar`) |
+| `--mode` | `custom` | Time range: `24h`, `week`, `month`, or `custom` |
+| `--from-date` | `28.02.2026` | Start date (`DD.MM.YYYY`). Only used with `--mode custom`. |
+| `--to-date` | today | End date (`DD.MM.YYYY`). Only used with `--mode custom`. |
+| `--raw-output FILE` | — | Save fetched raw API data as pretty JSON |
+| `--raw-input FILE` | — | Load alerts from a local JSON file instead of the API |
 
 Example with local JSON:
 
@@ -138,6 +154,7 @@ requirements.txt   Python dependencies
 data.json          Local/sample alert data
 templates/         HTML templates
 static/            CSS assets
+translations/      UI strings for he, en, ru, ar
 ```
 
 ## Data Source
