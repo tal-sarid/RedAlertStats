@@ -3,36 +3,29 @@
 {% endif %}
 
 <div class="card">
-    <div class="card-title">Query</div>
+    <div class="card-title">{{ t.query }}</div>
     <form method="get" action="/report">
+        <input type="hidden" name="lang" value="{{ lang }}">
         <div class="form-row">
             <div class="fg">
-                <label>Language</label>
-                <select name="lang">
-                    {% for code, label in lang_options %}
-                    <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="fg">
-                <label>City Name</label>
+                <label>{{ t.city_name }}</label>
                 <input type="text" name="city" value="{{ city }}"
-                       placeholder="e.g. Tel Aviv - City Center" required
+                       placeholder="{{ t.city_placeholder }}" required
                        list="city-suggestions" autocomplete="off">
                 <datalist id="city-suggestions"></datalist>
             </div>
             <div class="fg">
-                <label>From</label>
+                <label>{{ t.from_ }}</label>
                 <input type="date" name="from_date" value="{{ from_val }}" required>
             </div>
             <div class="fg">
-                <label>To</label>
+                <label>{{ t.to_ }}</label>
                 <input type="date" name="to_date" value="{{ to_val }}" required>
             </div>
             <div class="form-btns">
-                <button type="submit" class="btn">Generate</button>
+                <button type="submit" class="btn">{{ t.generate }}</button>
                 <button type="submit" formaction="/raw-data" formtarget="_blank"
-                        class="btn btn-outline">View Raw Data</button>
+                        class="btn btn-outline">{{ t.view_raw }}</button>
             </div>
         </div>
     </form>
@@ -40,7 +33,7 @@
 
 <script>
 (function () {
-    var langSel = document.querySelector('select[name="lang"]');
+    var langSel = document.getElementById('lang-switcher');
     var datalist = document.getElementById('city-suggestions');
     if (!datalist) return;
 
@@ -61,12 +54,6 @@
             .catch(function () {});
     }
 
-    loadDistricts(langSel ? langSel.value : 'he');
-
-    if (langSel) {
-        langSel.addEventListener('change', function () {
-            loadDistricts(langSel.value);
-        });
-    }
+    loadDistricts(langSel ? langSel.value : '{{ lang }}');
 }());
 </script>

@@ -1,22 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang|default('he') }}" dir="{{ dir|default('rtl') }}" data-arabic-nums="{{ arabic_nums|default('false') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Red Alert Stats</title>
+    <title>{{ t.app_title }}</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>(function(){var t=localStorage.getItem('theme')||'auto';document.documentElement.dataset.theme=t;}());</script>
+    <script>
+        (function(){
+            var t=localStorage.getItem('theme')||'auto';document.documentElement.dataset.theme=t;
+        }());
+        (function(){
+            var saved=localStorage.getItem('lang');
+            if(!saved) return;
+            var url=new URL(location.href);
+            if(url.searchParams.get('lang')!==saved){url.searchParams.set('lang',saved);location.replace(url.toString());}
+        }());
+    </script>
 </head>
 <body>
 <div class="container">
     <header>
         <div class="pulse"></div>
         <div>
-            <h1>Red Alert Stats</h1>
-            <div class="sub">Israeli Home Front Command Alert History Analyzer</div>
+            <h1>{{ t.app_title }}</h1>
+            <div class="sub">{{ t.subtitle }}</div>
         </div>
-        <button id="theme-btn" class="theme-btn" aria-label="Switch theme"></button>
+        <div class="header-controls">
+            <select id="lang-switcher" class="lang-sel" aria-label="{{ t.language }}">
+                {% for code, flag, label in lang_options %}
+                <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ flag }} {{ label }}</option>
+                {% endfor %}
+            </select>
+            <button id="theme-btn" class="theme-btn" aria-label="Switch theme"></button>
+        </div>
     </header>
 
     {% block content %}{% endblock %}
@@ -29,7 +46,7 @@
         light: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
         auto:  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke-linecap="round" aria-hidden="true"><path d="M12 5a7 7 0 0 0 0 14Z" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2"><line x1="20.5" y1="12" x2="23" y2="12"/><line x1="19.36" y1="7.75" x2="21.53" y2="6.5"/><line x1="16.25" y1="4.64" x2="17.5" y2="2.47"/><line x1="19.36" y1="16.25" x2="21.53" y2="17.5"/><line x1="16.25" y1="19.36" x2="17.5" y2="21.53"/></g></svg>'
     };
-    var LABEL = { dark: 'Dark', light: 'Light', auto: 'Auto' };
+    var LABEL = { dark: '{{ t.theme_dark }}', light: '{{ t.theme_light }}', auto: '{{ t.theme_auto }}' };
     var html  = document.documentElement;
     var btn   = document.getElementById('theme-btn');
 
@@ -37,7 +54,7 @@
         html.dataset.theme = t;
         localStorage.setItem('theme', t);
         btn.innerHTML = ICON[t] + '<span>' + LABEL[t] + '</span>';
-        btn.title = LABEL[t] + ' – click to cycle';
+        btn.title = LABEL[t] + '{{ t.theme_cycle }}';
     }
 
     btn.addEventListener('click', function () {
@@ -50,6 +67,38 @@
     // Auto mode: CSS media-query handles the visual flip in real-time automatically.
     // No extra JS needed — the browser re-evaluates @media (prefers-color-scheme)
     // whenever the OS setting changes, updating all CSS custom properties instantly.
+}());
+</script>
+<script>
+(function () {
+    var switcher = document.getElementById('lang-switcher');
+    if (!switcher) return;
+    switcher.addEventListener('change', function () {
+        localStorage.setItem('lang', switcher.value);
+        var url = new URL(location.href);
+        url.searchParams.set('lang', switcher.value);
+        location.href = url.toString();
+    });
+}());
+</script>
+<script>
+(function () {
+    if (document.documentElement.dataset.arabicNums !== 'true') return;
+    var OFFSET = 0x0630;
+    function walk(node) {
+        if (node.nodeType === 3) {
+            node.nodeValue = node.nodeValue.replace(/[0-9]/g, function (d) {
+                return String.fromCharCode(d.charCodeAt(0) + OFFSET);
+            });
+        } else if (node.nodeType === 1 &&
+                   node.tagName !== 'SCRIPT' &&
+                   node.tagName !== 'STYLE' &&
+                   node.tagName !== 'INPUT' &&
+                   node.tagName !== 'TEXTAREA') {
+            for (var i = 0; i < node.childNodes.length; i++) walk(node.childNodes[i]);
+        }
+    }
+    walk(document.body);
 }());
 </script>
 </body>

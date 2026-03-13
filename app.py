@@ -7,6 +7,7 @@ Open: http://localhost:5000
 """
 
 import argparse
+import json
 import os
 from datetime import datetime
 
@@ -37,12 +38,27 @@ def _rle_alert_sequence(seq):
     return result
 
 LANG_OPTIONS = [
-    ('he', 'עברית'),
-    ('en', 'English'),
-    ('ru', 'Русский'),
-    ('ar', 'العربية'),
+    ('he', '🇮🇱', 'עברית'),
+    ('en', '🇬🇧', 'English'),
+    ('ru', '🇷🇺', 'Русский'),
+    ('ar', '🇸🇦', 'العربية'),
 ]
-LANG_NAMES = dict(LANG_OPTIONS)
+LANG_NAMES = {code: label for code, _, label in LANG_OPTIONS}
+
+_TRANSLATIONS_DIR = os.path.join(os.path.dirname(__file__), 'translations')
+_TRANSLATIONS: dict[str, dict] = {}
+
+def get_t(lang: str) -> dict:
+    if lang not in _TRANSLATIONS:
+        path = os.path.join(_TRANSLATIONS_DIR, f'{lang}.json')
+        fallback = os.path.join(_TRANSLATIONS_DIR, 'en.json')
+        try:
+            with open(path, encoding='utf-8') as f:
+                _TRANSLATIONS[lang] = json.load(f)
+        except FileNotFoundError:
+            with open(fallback, encoding='utf-8') as f:
+                _TRANSLATIONS[lang] = json.load(f)
+    return _TRANSLATIONS[lang]
 
 
 # ── Date helpers ──────────────────────────────────────────────────────────────
@@ -74,12 +90,16 @@ def form_ctx(city='', from_val='', to_val='', lang='he', error='') -> dict:
         'lang':         lang,
         'lang_options': LANG_OPTIONS,
         'error':        error,
+        't':            get_t(lang),
+        'dir':          'rtl' if get_t(lang).get('rtl') else 'ltr',
+        'arabic_nums':  'true' if get_t(lang).get('arabic_numerals') else 'false',
     }
 
 
 def build_report_ctx(analysis: dict, city: str, from_api: str,
                      to_api: str, lang: str) -> dict:
     """Flatten analysis data into plain values the report template can render."""
+    t = get_t(lang)
     periods     = analysis['threat_periods']
     fp_warnings = analysis['false_positive_warnings']
     fp_count    = len(fp_warnings)
@@ -96,9 +116,8 @@ def build_report_ctx(analysis: dict, city: str, from_api: str,
     period_rows = []
     for i, p in enumerate(periods, 1):
         if p.had_warning and p.warning_time:
-            secs = int((p.start - p.warning_time).total_seconds())
-            m, s = divmod(secs, 60)
-            warn_lead = f'+{m}m{s:02d}s'
+            lead_secs = int((p.start - p.warning_time).total_seconds())
+            warn_lead = '+' + format_duration(lead_secs, t)
         else:
             warn_lead = None
 
@@ -106,7 +125,7 @@ def build_report_ctx(analysis: dict, city: str, from_api: str,
             'index':             i,
             'start':             p.start.strftime('%Y-%m-%d %H:%M:%S'),
             'end':               p.end.strftime('%Y-%m-%d %H:%M:%S') if not p.ongoing else None,
-            'duration':          format_duration(p.duration),
+            'duration':          format_duration(p.duration, t),
             'ongoing':           p.ongoing,
             'warn_lead':         warn_lead,
             'consecutive_count': p.consecutive_count,
@@ -141,13 +160,13 @@ def build_report_ctx(analysis: dict, city: str, from_api: str,
         'period_count':        len(periods),
         'with_hup':            analysis['periods_with_headup'],
         'without_hup':         analysis['periods_without_headup'],
-        'total_dur':           format_duration(analysis['total_duration']),
-        'avg_dur':             format_duration(sum(closed) / len(closed)) if closed else 'N/A',
-        'max_dur':             format_duration(max(closed)) if closed else 'N/A',
+        'total_dur':           format_duration(analysis['total_duration'], t),
+        'avg_dur':             format_duration(sum(closed) / len(closed), t) if closed else 'N/A',
+        'max_dur':             format_duration(max(closed), t) if closed else 'N/A',
         'warning_count':       warn_count,
         'fp_count':            fp_count,
         'fp_ratio':            fp_ratio,
-        'avg_lead':            format_duration(sum(lead_times) / len(lead_times)) if lead_times else 'N/A',
+        'avg_lead':            format_duration(sum(lead_times) / len(lead_times), t) if lead_times else 'N/A',
         'cat_rocket':          tcp.get(1, 0),
         'cat_aircraft':        tcp.get(2, 0),
         'cat_allclear':        tcp.get(13, 0),
@@ -162,7 +181,9 @@ def build_report_ctx(analysis: dict, city: str, from_api: str,
 
 @app.route('/')
 def index():
+    lang = request.args.get('lang', 'he')
     ctx = form_ctx(
+        lang=lang,
         from_val=api_to_html_date(DEFAULT_FROM),
         to_val=datetime.now().strftime('%Y-%m-%d'),
     )
@@ -178,13 +199,14 @@ def report():
 
     from_v = from_html or api_to_html_date(DEFAULT_FROM)
     to_v   = to_html   or datetime.now().strftime('%Y-%m-%d')
+    t      = get_t(lang)
 
     def render_form(error='', status=200):
         ctx = form_ctx(city=city, from_val=from_v, to_val=to_v, lang=lang, error=error)
         return render_template('index.html', **ctx), status
 
     if not city:
-        return render_form('City name is required.')
+        return render_form(t.get('err_city_required', 'City name is required.'))
 
     from_api = html_to_api_date(from_v)
     to_api   = html_to_api_date(to_v)
@@ -192,14 +214,14 @@ def report():
     try:
         alerts = fetch_alert_history(from_api, to_api, city, lang)
     except Exception as e:
-        return render_form(f'Failed to fetch data from the Home Front Command API: {e}', status=502)
+        msg = t.get('err_fetch_failed', 'Failed to fetch data from the Home Front Command API: {detail}')
+        return render_form(msg.format(detail=e), status=502)
 
     if not alerts:
-        return render_form(
-            f'No alert records found for \u201c{city}\u201d ({lang.upper()}) '
-            f'between {from_api} and {to_api}. '
-            'Verify the city name spelling \u2014 it must match the selected language.'
-        )
+        msg = t.get('err_no_records',
+                    'No alert records found for \u201c{city}\u201d between {from_date} and {to_date}. '
+                    'Verify the city name spelling \u2014 it must match the selected language.')
+        return render_form(msg.format(city=city, from_date=from_api, to_date=to_api))
 
     analysis = analyze_alerts(alerts, city_filter=city)
 

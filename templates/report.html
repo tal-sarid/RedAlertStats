@@ -7,34 +7,38 @@
 <div class="rep-head">
     <h2>{{ city_display }}</h2>
     <div class="meta">
-        {{ from_date }} &rarr; {{ to_date }}
+        <span class="date-range">
+            <span class="dt-ltr">{{ from_date }}</span>
+            {% if dir == 'rtl' %}&larr;{% else %}&rarr;{% endif %}
+            <span class="dt-ltr">{{ to_date }}</span>
+        </span>
         &nbsp;&middot;&nbsp; {{ lang_name }}
-        &nbsp;&middot;&nbsp; {{ total_records }} records
+        &nbsp;&middot;&nbsp; {{ total_records }} {{ t.records }}
     </div>
 </div>
 
 {# ── Stat cards ──────────────────────────────────────────────────────────── #}
 <div class="stats-row">
     <div class="stat">
-        <div class="sl">Actual Threats</div>
+        <div class="sl">{{ t.actual_threats }}</div>
         <div class="sv">{{ actual_count }}</div>
-        <div class="ss">rockets &amp; aircraft</div>
+        <div class="ss">{{ t.rockets_aircraft }}</div>
     </div>
     <div class="stat">
-        <div class="sl">Shelter Periods</div>
+        <div class="sl">{{ t.shelter_periods }}</div>
         <div class="sv">{{ period_count }}</div>
-        <div class="ss">{{ with_hup }} warned &middot; {{ without_hup }} surprise</div>
+        <div class="ss">{{ with_hup }} {{ t.warned }} &middot; {{ without_hup }} {{ t.surprise }}</div>
     </div>
     <div class="stat">
-        <div class="sl">Total Shelter Time</div>
+        <div class="sl">{{ t.total_shelter }}</div>
         <div class="sv">{{ total_dur }}</div>
-        <div class="ss">avg {{ avg_dur }}</div>
+        <div class="ss">{{ t.avg }} {{ avg_dur }}</div>
     </div>
     <div class="stat">
-        <div class="sl">Warning Head-ups</div>
+        <div class="sl">{{ t.warning_headups }}</div>
         <div class="sv">{{ warning_count }}</div>
         <div class="ss">
-            {{ fp_count }} false positive{{ 's' if fp_count != 1 else '' }}
+            {{ fp_count }} {{ t.fp_plural if fp_count != 1 else t.fp_singular }}
             &middot; {{ '%.0f' | format(fp_ratio) }}%
         </div>
     </div>
@@ -42,44 +46,44 @@
 
 {# ── Breakdown ───────────────────────────────────────────────────────────── #}
 <div class="card">
-    <div class="card-title">Breakdown</div>
+    <div class="card-title">{{ t.breakdown }}</div>
     <div class="det-grid">
         <div>
             <div class="dr">
-                <span class="dl">🚀 Rocket fire</span>
+                <span class="dl">🚀 {{ t.rocket_fire }}</span>
                 <span class="dv">{{ cat_rocket }}</span>
             </div>
             <div class="dr">
-                <span class="dl">✈️ Enemy aircraft</span>
+                <span class="dl">✈️ {{ t.enemy_aircraft }}</span>
                 <span class="dv">{{ cat_aircraft }}</span>
             </div>
             <div class="dr">
-                <span class="dl">🟢 All-clear events</span>
+                <span class="dl">🟢 {{ t.allclear_events }}</span>
                 <span class="dv">{{ cat_allclear }}</span>
             </div>
             <div class="dr">
-                <span class="dl">⚠️ Head-up warnings</span>
+                <span class="dl">⚠️ {{ t.headup_warnings }}</span>
                 <span class="dv">{{ cat_headup }}</span>
             </div>
         </div>
         <div>
             <div class="dr">
-                <span class="dl">🎯 True positive warnings</span>
+                <span class="dl">🎯 {{ t.true_positive_warnings }}</span>
                 <span class="dv">{{ true_positive_count }}</span>
             </div>
             <div class="dr">
-                <span class="dl">❌ False positive warnings</span>
+                <span class="dl">❌ {{ t.false_positive_warnings }}</span>
                 <span class="dv">
                     {{ fp_count }}&ensp;
                     <span class="tag t-amb">{{ '%.1f' | format(fp_ratio) }}%</span>
                 </span>
             </div>
             <div class="dr">
-                <span class="dl">⏱️ Avg warning lead time</span>
+                <span class="dl">⏱️ {{ t.avg_lead_time }}</span>
                 <span class="dv">{{ avg_lead }}</span>
             </div>
             <div class="dr">
-                <span class="dl">🛡️ Max shelter duration</span>
+                <span class="dl">🛡️ {{ t.max_shelter_dur }}</span>
                 <span class="dv">{{ max_dur }}</span>
             </div>
         </div>
@@ -90,7 +94,7 @@
 <div class="card">
     <details>
         <summary class="card-title">
-            ⛑️ Shelter Periods
+            {{ t.shelter_periods_section }}
             {% if period_count %}&mdash; {{ period_count }}{% endif %}
         </summary>
 
@@ -100,24 +104,24 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Start</th>
-                    <th>End</th>
-                    <th>Duration</th>
-                    <th>Warning</th>
-                    <th>Alerts</th>
+                    <th>{{ t.col_start }}</th>
+                    <th>{{ t.col_end }}</th>
+                    <th>{{ t.col_duration }}</th>
+                    <th>{{ t.col_warning }}</th>
+                    <th>{{ t.col_alerts }}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in period_rows %}
                 <tr>
                     <td>{{ p.index }}</td>
-                    <td class="nw">{{ p.start }}</td>
+                    <td class="nw"><span class="dt-ltr">{{ p.start }}</span></td>
                     <td class="nw">
                         {% if p.ongoing %}
-                            <span class="live"></span>now
-                            <span class="tag t-red">ongoing</span>
+                            <span class="live"></span>{{ t.now }}
+                            <span class="tag t-red">{{ t.ongoing }}</span>
                         {% else %}
-                            {{ p.end }}
+                            <span class="dt-ltr">{{ p.end }}</span>
                         {% endif %}
                     </td>
                     <td class="nw">
@@ -127,16 +131,16 @@
                         {% if p.warn_lead %}
                             <span class="tag t-grn">{{ p.warn_lead }}</span>
                         {% else %}
-                            <span class="tag t-red">surprise</span>
+                            <span class="tag t-red">{{ t.surprise }}</span>
                         {% endif %}
                     </td>
                     <td class="alert-seq">
                         {% if p.alert_icons %}
                             {% for item in p.alert_icons %}
                                 {% if item.cat == 1 %}
-                                    <span class="ai ai-rocket" title="Rocket fire">🚀</span>
+                                    <span class="ai ai-rocket" title="{{ t.rocket_title }}">🚀</span>
                                 {% elif item.cat == 2 %}
-                                    <span class="ai ai-aircraft" title="Enemy aircraft">✈️</span>
+                                    <span class="ai ai-aircraft" title="{{ t.aircraft_title }}">✈️</span>
                                 {% else %}
                                     <span class="ai" title="Cat {{ item.cat }}">⚠️</span>
                                 {% endif %}
@@ -154,7 +158,7 @@
         </table>
     </div>
     {% else %}
-    <p class="empty">No shelter periods found for this date range.</p>
+    <p class="empty">{{ t.no_periods }}</p>
     {% endif %}
     </details>
 </div>
@@ -164,24 +168,24 @@
 <div class="card">
     <details>
         <summary class="card-title">
-            ⚠️ Head-up Warnings
+            {{ t.headup_section }}
             {% if warning_count %}&mdash; {{ warning_count }}{% endif %}
         </summary>
     <div class="tbl-wrap">
         <table>
             <thead>
-                <tr><th>#</th><th>Timestamp</th><th>Result</th></tr>
+                <tr><th>#</th><th>{{ t.col_timestamp }}</th><th>{{ t.col_result }}</th></tr>
             </thead>
             <tbody>
                 {% for w in warning_rows %}
                 <tr>
                     <td>{{ w.index }}</td>
-                    <td class="nw">{{ w.timestamp }}</td>
+                    <td class="nw"><span class="dt-ltr">{{ w.timestamp }}</span></td>
                     <td>
                         {% if w.is_tp %}
-                            <span class="tag t-grn">🎯 true positive</span>
+                            <span class="tag t-grn">🎯 {{ t.true_positive_tag }}</span>
                         {% else %}
-                            <span class="tag t-red">❌ false positive</span>
+                            <span class="tag t-red">❌ {{ t.false_positive_tag }}</span>
                         {% endif %}
                     </td>
                 </tr>

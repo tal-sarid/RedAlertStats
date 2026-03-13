@@ -246,11 +246,25 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
     }
 
 
-def format_duration(seconds: float) -> str:
-    """Format seconds to HH:MM:SS format."""
+def format_duration(seconds: float, t: dict | None = None) -> str:
+    """Format seconds, omitting leading zero-valued units.
+
+    With a translation dict supplies the unit labels (keys: dur_h, dur_m, dur_s).
+    Falls back to the compact 'XhYmZs' style when no dict is provided.
+    """
     hours, remainder = divmod(int(seconds), 3600)
     minutes, secs = divmod(remainder, 60)
-    return f"{hours:02d}h:{minutes:02d}m:{secs:02d}s"
+    if t:
+        lh, lm, ls = t.get('dur_h', 'h'), t.get('dur_m', 'm'), t.get('dur_s', 's')
+    else:
+        lh, lm, ls = 'h', 'm', 's'
+    parts = []
+    if hours:
+        parts.append(f"{hours}{lh}")
+    if minutes or hours:
+        parts.append(f"{minutes:02d}{lm}" if hours else f"{minutes}{lm}")
+    parts.append(f"{secs:02d}{ls}" if (hours or minutes) else f"{secs}{ls}")
+    return ' '.join(parts)
 
 
 def print_analysis_report(analysis: Dict) -> None:
