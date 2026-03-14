@@ -9,6 +9,7 @@ Open: http://localhost:5000
 import argparse
 import json
 import os
+from collections import defaultdict
 from datetime import datetime
 
 import requests
@@ -94,6 +95,96 @@ def form_ctx(city='', from_val='', to_val='', lang='he', error='', mode=3) -> di
         'dir':          'rtl' if get_t(lang).get('rtl') else 'ltr',
         'arabic_nums':  'true' if get_t(lang).get('arabic_numerals') else 'false',
         'mode':         mode,
+    }
+
+
+def build_charts_data(alerts: list, analysis: dict, city: str = '') -> dict:
+    """Build JSON-serialisable chart data from raw alerts + analysis results."""
+    if city:
+        filtered = [a for a in alerts if a.get('data', '').strip() == city.strip()]
+    else:
+        filtered = alerts
+
+    date_rockets:   dict = defaultdict(int)
+    date_aircraft:  dict = defaultdict(int)
+    date_warnings:  dict = defaultdict(int)
+    hour_rockets:   dict = defaultdict(int)
+    hour_aircraft:  dict = defaultdict(int)
+    hour_warnings:  dict = defaultdict(int)
+
+    for alert in filtered:
+        dt  = alert.get('alertPreciseDateTime')
+        cat = alert.get('category')
+        if dt is None:
+            continue
+        date_key = dt.strftime('%Y-%m-%d')
+        hour     = dt.hour
+        if cat == 1:
+            date_rockets[date_key]  += 1
+            hour_rockets[hour]      += 1
+        elif cat == 2:
+            date_aircraft[date_key] += 1
+            hour_aircraft[hour]     += 1
+        elif cat == 14:
+            date_warnings[date_key] += 1
+            hour_warnings[hour]     += 1
+
+    all_dates = sorted(set(date_rockets) | set(date_aircraft) | set(date_warnings))
+
+    date_shelter_total:   dict = defaultdict(float)
+    date_shelter_periods: dict = defaultdict(list)
+    date_lead_times:      dict = defaultdict(list)
+    for period in analysis['threat_periods']:
+        if period.ongoing:
+            continue
+        dk = period.start.strftime('%Y-%m-%d')
+        date_shelter_total[dk]   += period.duration
+        date_shelter_periods[dk].append(period.duration)
+        if period.had_warning and period.warning_time:
+            lead = (period.start - period.warning_time).total_seconds()
+            date_lead_times[dk].append(lead)
+
+    shelter_dates = sorted(date_shelter_total.keys())
+    warn_dates    = sorted(date_lead_times.keys())
+    true_pos  = analysis['total_warnings'] - len(analysis['false_positive_warnings'])
+    false_pos = len(analysis['false_positive_warnings'])
+
+    return {
+        'chart1': {
+            'dates':    all_dates,
+            'rockets':  [date_rockets[d]  for d in all_dates],
+            'aircraft': [date_aircraft[d] for d in all_dates],
+            'warnings': [date_warnings[d] for d in all_dates],
+        },
+        'chart2': {
+            'dates':   shelter_dates,
+            'seconds': [round(date_shelter_total[d]) for d in shelter_dates],
+        },
+        'chart3': {
+            'dates':       warn_dates,
+            'avg_seconds': [
+                round(sum(date_lead_times[d]) / len(date_lead_times[d]))
+                for d in warn_dates
+            ],
+        },
+        'chart4': {
+            'hours':    list(range(24)),
+            'rockets':  [hour_rockets[h]  for h in range(24)],
+            'aircraft': [hour_aircraft[h] for h in range(24)],
+            'warnings': [hour_warnings[h] for h in range(24)],
+        },
+        'chart5': {
+            'rockets':  analysis['category_counts'].get(1, 0),
+            'aircraft': analysis['category_counts'].get(2, 0),
+        },
+        'chart6': {
+            'true_positive':  true_pos,
+            'false_positive': false_pos,
+        },
+        'chart7': {
+            'warned':   analysis['periods_with_headup'],
+            'surprise': analysis['periods_without_headup'],
+        },
     }
 
 
@@ -251,6 +342,7 @@ def report():
     ctx = {
         **form_ctx(city=city, from_val=from_v, to_val=to_v, lang=lang, mode=mode),
         **build_report_ctx(analysis, city, from_api, to_api, lang, mode),
+        'charts_data': build_charts_data(alerts, analysis, city),
     }
     return render_template('report.html', **ctx)
 
