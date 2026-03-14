@@ -109,6 +109,7 @@
     var DUR_S = {{ t.dur_s | tojson }};
     var LANG   = {{ lang | tojson }};
     var IS_RTL = document.documentElement.dir === 'rtl';
+    var charts = [];
 
     function fmtSec(s) {
         s = Math.round(s);
@@ -153,11 +154,26 @@
     function secTooltip() {
         return { rtl: IS_RTL, callbacks: { label: function (ctx) { return ctx.dataset.label + ': ' + fmtSec(ctx.raw); } } };
     }
+    function recolorChart(chart) {
+        var border = cv('--border'), muted = cv('--muted'), text = cv('--text');
+        if (chart.options.scales) {
+            ['x', 'y'].forEach(function (axis) {
+                var sc = chart.options.scales[axis];
+                if (!sc) return;
+                if (sc.grid)  sc.grid.color  = border;
+                if (sc.ticks) sc.ticks.color = muted;
+            });
+        }
+        if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+            chart.options.plugins.legend.labels.color = text;
+        }
+        chart.update('none');
+    }
 
     /* Chart 1 – stacked: threats + warnings per date */
     if (document.getElementById('chart1')) {
         var c1Show = [cd.chart1.rockets, cd.chart1.aircraft, cd.chart1.warnings].filter(anyNonZero).length > 1;
-        new Chart(document.getElementById('chart1'), {
+        charts.push(new Chart(document.getElementById('chart1'), {
             type: 'bar',
             data: {
                 labels: cd.chart1.dates.map(addDOW),
@@ -169,12 +185,12 @@
             },
             options: { responsive: true, maintainAspectRatio: false,
                 plugins: { legend: legendCfg(c1Show), tooltip: { rtl: IS_RTL } }, scales: gridScales() },
-        });
+        }));
     }
 
     /* Chart 2 – area: shelter time per date */
     if (document.getElementById('chart2')) {
-        new Chart(document.getElementById('chart2'), {
+        charts.push(new Chart(document.getElementById('chart2'), {
             type: 'line',
             data: {
                 labels: cd.chart2.dates.map(addDOW),
@@ -185,12 +201,12 @@
             },
             options: { responsive: true, maintainAspectRatio: false,
                 plugins: { legend: legendCfg(false), tooltip: secTooltip() }, scales: secScales() },
-        });
+        }));
     }
 
     /* Chart 3 – area: avg warning duration per date */
     if (document.getElementById('chart3')) {
-        new Chart(document.getElementById('chart3'), {
+        charts.push(new Chart(document.getElementById('chart3'), {
             type: 'line',
             data: {
                 labels: cd.chart3.dates.map(addDOW),
@@ -201,13 +217,13 @@
             },
             options: { responsive: true, maintainAspectRatio: false,
                 plugins: { legend: legendCfg(false), tooltip: secTooltip() }, scales: secScales() },
-        });
+        }));
     }
 
     /* Chart 4 – stacked: threats + warnings per hour */
     if (document.getElementById('chart4')) {
         var c4Show = [cd.chart4.rockets, cd.chart4.aircraft, cd.chart4.warnings].filter(anyNonZero).length > 1;
-        new Chart(document.getElementById('chart4'), {
+        charts.push(new Chart(document.getElementById('chart4'), {
             type: 'bar',
             data: {
                 labels: cd.chart4.hours.map(function (h) { return String(h).padStart(2, '0') + ':00'; }),
@@ -219,12 +235,12 @@
             },
             options: { responsive: true, maintainAspectRatio: false,
                 plugins: { legend: legendCfg(c4Show), tooltip: { rtl: IS_RTL } }, scales: gridScales() },
-        });
+        }));
     }
 
     /* Chart 5 – doughnut: threat types */
     if (document.getElementById('chart5')) {
-        new Chart(document.getElementById('chart5'), {
+        charts.push(new Chart(document.getElementById('chart5'), {
             type: 'doughnut',
             data: {
                 labels: [{{ t.rocket_fire | tojson }}, {{ t.enemy_aircraft | tojson }}],
@@ -233,13 +249,13 @@
             },
             options: { responsive: true, maintainAspectRatio: false,
                 plugins: { legend: legendCfg(true), tooltip: { rtl: IS_RTL } } },
-        });
+        }));
     }
 
     /* Chart 6 – doughnut: true vs false warnings */
     if (document.getElementById('chart6')) {
         var c6Show = cd.chart6.true_positive > 0 && cd.chart6.false_positive > 0;
-        new Chart(document.getElementById('chart6'), {
+        charts.push(new Chart(document.getElementById('chart6'), {
             type: 'doughnut',
             data: {
                 labels: [{{ t.true_positive_tag | tojson }}, {{ t.false_positive_tag | tojson }}],
@@ -248,13 +264,13 @@
             },
             options: { responsive: true, maintainAspectRatio: false,
                 plugins: { legend: legendCfg(c6Show), tooltip: { rtl: IS_RTL } } },
-        });
+        }));
     }
 
     /* Chart 7 – doughnut: warned vs surprise shelter periods */
     if (document.getElementById('chart7')) {
         var c7Show = cd.chart7.warned > 0 && cd.chart7.surprise > 0;
-        new Chart(document.getElementById('chart7'), {
+        charts.push(new Chart(document.getElementById('chart7'), {
             type: 'doughnut',
             data: {
                 labels: [{{ t.warned | tojson }}, {{ t.surprise | tojson }}],
@@ -263,8 +279,13 @@
             },
             options: { responsive: true, maintainAspectRatio: false,
                 plugins: { legend: legendCfg(c7Show), tooltip: { rtl: IS_RTL } } },
-        });
+        }));
     }
+
+    new MutationObserver(function () { charts.forEach(recolorChart); })
+        .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)')
+        .addEventListener('change', function () { charts.forEach(recolorChart); });
 }());
 </script>
 
