@@ -22,6 +22,10 @@ It includes:
 - Supports multiple API languages: `he`, `en`, `ru`, `ar`.
 - Web report with sortable timeline-style output.
 
+## Screenshot
+
+[<img src="docs/screenshots/app-preview.png" alt="Web app screenshot preview (click to open full image)" width="1000" />](docs/screenshots/app-full.png)
+
 ## Requirements
 
 - Python 3.11+ recommended
@@ -31,7 +35,7 @@ It includes:
 
 ### Using scripts
 
-#### Bash
+#### Bash (Linux/macOS)
 
 ```bash
 ./setup.sh
@@ -45,9 +49,19 @@ It includes:
 
 ### Manual setup
 
+#### Bash (Linux/macOS)
+
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### PowerShell (Windows)
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
@@ -55,7 +69,7 @@ pip install -r requirements.txt
 
 ### Using scripts
 
-#### Bash
+#### Bash (Linux/macOS)
 
 ```bash
 ./run.sh [--host HOST] [--port PORT] [--debug]
@@ -69,7 +83,17 @@ pip install -r requirements.txt
 
 ### Manual run
 
+#### Bash (Linux/macOS)
+
 ```bash
+source .venv/bin/activate
+python app.py [--host HOST] [--port PORT] [--debug]
+```
+
+#### PowerShell (Windows)
+
+```powershell
+.venv\Scripts\Activate.ps1
 python app.py [--host HOST] [--port PORT] [--debug]
 ```
 
