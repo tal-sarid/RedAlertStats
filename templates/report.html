@@ -26,22 +26,22 @@
     <div class="stat">
         <div class="sl">{{ t.actual_threats }}</div>
         <div class="sv">{{ actual_count }}</div>
-        <div class="ss"><span class="nb">🚀 {{ cat_rocket }} {{ t.rocket_fire }}</span> &middot; <span class="nb">✈️ {{ cat_aircraft }} {{ t.enemy_aircraft }}</span></div>
+        <div class="ss"><span class="nb">🚀 {{ cat_rocket }} {{ t.rocket_fire | lower }}</span> &middot; <span class="nb">✈️ {{ cat_aircraft }} {{ t.enemy_aircraft | lower }}</span></div>
     </div>
     <div class="stat">
         <div class="sl">{{ t.shelter_periods }}</div>
         <div class="sv">{{ period_count }}</div>
-        <div class="ss"><span class="nb">🔔 {{ with_hup }} {{ t.warned }}</span> &middot; <span class="nb">⚡ {{ without_hup }} {{ t.surprise }}</span></div>
+        <div class="ss"><span class="nb">🔔 {{ with_hup }} {{ t.warned | lower }}</span> &middot; <span class="nb">⚡ {{ without_hup }} {{ t.surprise | lower }}</span></div>
     </div>
     <div class="stat">
         <div class="sl">{{ t.total_shelter }}</div>
         <div class="sv">{{ total_dur }}</div>
-        <div class="ss"><span class="nb">⏱️ {{ t.avg }} {{ avg_dur }}</span> &middot; <span class="nb">🛡️ {{ t.max }} {{ max_dur }}</span></div>
+        <div class="ss"><span class="nb">⏱️ {{ t.avg | lower }} {{ avg_dur }}</span> &middot; <span class="nb">🛡️ {{ t.max | lower }} {{ max_dur }}</span></div>
     </div>
     <div class="stat">
         <div class="sl">{{ t.warning_headups }}</div>
         <div class="sv">{{ warning_count }}</div>
-        <div class="ss"><span class="nb">❌ {{ fp_count }} {{ t.fp_plural if fp_count != 1 else t.fp_singular }}</span> &middot; <span class="nb">{{ '%.1f' | format(fp_ratio) }}%</span></div>
+        <div class="ss"><span class="nb">❌ {{ fp_count }} {{ (t.fp_plural if fp_count != 1 else t.fp_singular) | lower }}</span> &middot; <span class="nb">{{ '%.1f' | format(fp_ratio) }}%</span></div>
     </div>
 </div>
 
@@ -124,7 +124,8 @@
     function addDOW(dateStr) {
         var d = new Date(dateStr + 'T12:00:00');
         var dow = d.toLocaleDateString(LANG, { weekday: 'short' });
-        return [dow, dateStr.slice(5).replace('-', '/')];
+        var short = d.toLocaleDateString(LANG, { month: 'numeric', day: 'numeric' });
+        return [dow, short];
     }
 
     var ROCKET_C    = cv('--chart-rocket');
@@ -152,7 +153,7 @@
     }
     function anyNonZero(arr) { return arr.some(function (v) { return v > 0; }); }
     function secTooltip() {
-        return { rtl: IS_RTL, callbacks: { label: function (ctx) { return ctx.dataset.label + ': ' + fmtSec(ctx.raw); } } };
+        return { rtl: IS_RTL, callbacks: { label: function (ctx) { return fmtSec(ctx.raw); } } };
     }
     function recolorChart(chart) {
         var border = cv('--border'), muted = cv('--muted'), text = cv('--text');
@@ -184,7 +185,7 @@
                 ],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(c1Show), tooltip: { rtl: IS_RTL } }, scales: gridScales() },
+                plugins: { legend: legendCfg(c1Show), tooltip: c1Show ? { rtl: IS_RTL } : { rtl: IS_RTL, callbacks: { label: function(ctx) { return String(ctx.raw); } } } }, scales: gridScales() },
         }));
     }
 
@@ -234,7 +235,7 @@
                 ],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(c4Show), tooltip: { rtl: IS_RTL } }, scales: gridScales() },
+                plugins: { legend: legendCfg(c4Show), tooltip: c4Show ? { rtl: IS_RTL } : { rtl: IS_RTL, callbacks: { label: function(ctx) { return String(ctx.raw); } } } }, scales: gridScales() },
         }));
     }
 
@@ -263,7 +264,7 @@
                     backgroundColor: [TRUE_C, FALSE_C] }],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(c6Show), tooltip: { rtl: IS_RTL } } },
+                plugins: { legend: legendCfg(c6Show), tooltip: c6Show ? { rtl: IS_RTL } : { rtl: IS_RTL, callbacks: { title: function() { return ''; } } } } },
         }));
     }
 
@@ -278,7 +279,7 @@
                     backgroundColor: [WARN_C, ROCKET_C] }],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(c7Show), tooltip: { rtl: IS_RTL } } },
+                plugins: { legend: legendCfg(c7Show), tooltip: c7Show ? { rtl: IS_RTL } : { rtl: IS_RTL, callbacks: { title: function() { return ''; } } } } },
         }));
     }
 
@@ -315,13 +316,13 @@
                 {% for p in period_rows %}
                 <tr>
                     <td>{{ p.index }}</td>
-                    <td class="nw"><span class="dt-ltr">{{ p.start }}</span></td>
+                    <td class="nw"><span class="dt-ltr" data-dt="{{ p.start }}">{{ p.start }}</span></td>
                     <td class="nw">
                         {% if p.ongoing %}
                             <span class="live"></span>{{ t.now }}
                             <span class="tag t-red">{{ t.ongoing }}</span>
                         {% else %}
-                            <span class="dt-ltr">{{ p.end }}</span>
+                            <span class="dt-ltr" data-dt="{{ p.end }}">{{ p.end }}</span>
                         {% endif %}
                     </td>
                     <td class="nw">
@@ -380,7 +381,7 @@
                 {% for w in warning_rows %}
                 <tr>
                     <td>{{ w.index }}</td>
-                    <td class="nw"><span class="dt-ltr">{{ w.timestamp }}</span></td>
+                    <td class="nw"><span class="dt-ltr" data-dt="{{ w.timestamp }}">{{ w.timestamp }}</span></td>
                     <td>
                         {% if w.is_tp %}
                             <span class="tag t-grn">🎯 {{ t.true_positive_tag }}</span>
@@ -396,5 +397,23 @@
     </details>
 </div>
 {% endif %}
+
+<script>
+(function () {
+    var LANG = {{ lang | tojson }};
+    var opts = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+    document.querySelectorAll('[data-dt]').forEach(function (el) {
+        var raw = el.getAttribute('data-dt');
+        if (!raw || raw === '\u2014') return;
+        try {
+            var d = new Date(raw.replace(' ', 'T'));
+            if (!isNaN(d)) {
+                el.textContent = d.toLocaleString(LANG, opts);
+                el.classList.remove('dt-ltr');
+            }
+        } catch (e) {}
+    });
+}());
+</script>
 
 {% endblock %}

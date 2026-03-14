@@ -24,11 +24,11 @@
     --chart-rocket:       #dc2626;
     --chart-aircraft:     #a855f7;
     --chart-warning:      #f97316;
-    --chart-shelter:      #10b981;
+    --chart-shelter:      #dc2626;
     --chart-true:         #22c55e;
     --chart-false:        #f87171;
     --chart-warning-fill: rgba(249, 115, 22, .15);
-    --chart-shelter-fill: rgba(16, 185, 129, .2);
+    --chart-shelter-fill: rgba(220, 38, 38, .15);
 }
 
 /* ── Light theme ── */
