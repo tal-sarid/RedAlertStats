@@ -24,7 +24,7 @@ It includes:
 
 ## Screenshot
 
-[<img src="docs/screenshots/app-preview.png" alt="Web app screenshot preview (click to open full image)" width="1000" />](docs/screenshots/app-full.png)
+![Web app screenshot preview](docs/screenshots/app-preview.png)
 
 ## Requirements
 

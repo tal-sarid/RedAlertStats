@@ -10,11 +10,12 @@ import argparse
 import json
 import os
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import requests
 from flask import Flask, jsonify, redirect, request, render_template
-from analyzer import fetch_alert_history, analyze_alerts, format_duration, build_home_front_command_url
+from analyzer import fetch_alert_history, analyze_alerts, format_duration, build_home_front_command_url, ALERT_TZ
 
 app = Flask(__name__)
 
@@ -98,7 +99,7 @@ def form_ctx(city='', from_val='', to_val='', lang='he', error='', mode=3) -> di
     }
 
 
-def build_charts_data(alerts: list, analysis: dict, city: str = '') -> dict:
+def build_charts_data(alerts: list, analysis: dict, city: str = '', date_range: list = None) -> dict:
     """Build JSON-serialisable chart data from raw alerts + analysis results."""
     if city:
         filtered = [a for a in alerts if a.get('data', '').strip() == city.strip()]
@@ -107,10 +108,12 @@ def build_charts_data(alerts: list, analysis: dict, city: str = '') -> dict:
 
     date_rockets:   dict = defaultdict(int)
     date_aircraft:  dict = defaultdict(int)
-    date_warnings:  dict = defaultdict(int)
+    date_warn_tp:   dict = defaultdict(int)
+    date_warn_fp:   dict = defaultdict(int)
     hour_rockets:   dict = defaultdict(int)
     hour_aircraft:  dict = defaultdict(int)
-    hour_warnings:  dict = defaultdict(int)
+    hour_warn_tp:   dict = defaultdict(int)
+    hour_warn_fp:   dict = defaultdict(int)
 
     for alert in filtered:
         dt  = alert.get('alertPreciseDateTime')
@@ -125,11 +128,19 @@ def build_charts_data(alerts: list, analysis: dict, city: str = '') -> dict:
         elif cat == 2:
             date_aircraft[date_key] += 1
             hour_aircraft[hour]     += 1
-        elif cat == 14:
-            date_warnings[date_key] += 1
-            hour_warnings[hour]     += 1
 
-    all_dates = sorted(set(date_rockets) | set(date_aircraft) | set(date_warnings))
+    for warn_dt, is_tp in analysis['warnings'].items():
+        date_key = warn_dt.strftime('%Y-%m-%d')
+        hour     = warn_dt.hour
+        if is_tp:
+            date_warn_tp[date_key] += 1
+            hour_warn_tp[hour]     += 1
+        else:
+            date_warn_fp[date_key] += 1
+            hour_warn_fp[hour]     += 1
+
+    data_dates = sorted(set(date_rockets) | set(date_aircraft) | set(date_warn_tp) | set(date_warn_fp))
+    all_dates  = sorted(set(date_range) | set(data_dates)) if date_range else data_dates
 
     date_shelter_total:   dict = defaultdict(float)
     date_shelter_periods: dict = defaultdict(list)
@@ -145,43 +156,47 @@ def build_charts_data(alerts: list, analysis: dict, city: str = '') -> dict:
             date_lead_times[dk].append(lead)
 
     shelter_dates = sorted(date_shelter_total.keys())
+    shelter_full  = sorted(set(date_range) | set(shelter_dates)) if date_range else shelter_dates
     warn_dates    = sorted(date_lead_times.keys())
+    warn_full     = sorted(set(date_range) | set(warn_dates)) if date_range else warn_dates
+    merged_dates  = sorted(set(shelter_full) | set(warn_full))
     true_pos  = analysis['total_warnings'] - len(analysis['false_positive_warnings'])
     false_pos = len(analysis['false_positive_warnings'])
 
     return {
-        'chart1': {
+        'threats_per_date': {
             'dates':    all_dates,
-            'rockets':  [date_rockets[d]  for d in all_dates],
-            'aircraft': [date_aircraft[d] for d in all_dates],
-            'warnings': [date_warnings[d] for d in all_dates],
+            'has_data': bool(data_dates),
+            'rockets':  [date_rockets.get(d, 0)   for d in all_dates],
+            'aircraft': [date_aircraft.get(d, 0)  for d in all_dates],
+            'warn_tp':  [date_warn_tp.get(d, 0)   for d in all_dates],
+            'warn_fp':  [date_warn_fp.get(d, 0)   for d in all_dates],
         },
-        'chart2': {
-            'dates':   shelter_dates,
-            'seconds': [round(date_shelter_total[d]) for d in shelter_dates],
-        },
-        'chart3': {
-            'dates':       warn_dates,
-            'avg_seconds': [
-                round(sum(date_lead_times[d]) / len(date_lead_times[d]))
-                for d in warn_dates
+        'shelter_and_lead_per_date': {
+            'dates':           merged_dates,
+            'has_data':        bool(shelter_dates) or bool(warn_dates),
+            'shelter_seconds': [round(date_shelter_total.get(d, 0)) for d in merged_dates],
+            'lead_seconds':    [
+                round(sum(date_lead_times[d])) if d in date_lead_times else 0
+                for d in merged_dates
             ],
         },
-        'chart4': {
+        'threats_per_hour': {
             'hours':    list(range(24)),
-            'rockets':  [hour_rockets[h]  for h in range(24)],
-            'aircraft': [hour_aircraft[h] for h in range(24)],
-            'warnings': [hour_warnings[h] for h in range(24)],
+            'rockets':  [hour_rockets.get(h, 0)   for h in range(24)],
+            'aircraft': [hour_aircraft.get(h, 0)  for h in range(24)],
+            'warn_tp':  [hour_warn_tp.get(h, 0)   for h in range(24)],
+            'warn_fp':  [hour_warn_fp.get(h, 0)   for h in range(24)],
         },
-        'chart5': {
+        'threat_types': {
             'rockets':  analysis['category_counts'].get(1, 0),
             'aircraft': analysis['category_counts'].get(2, 0),
         },
-        'chart6': {
+        'warning_accuracy': {
             'true_positive':  true_pos,
             'false_positive': false_pos,
         },
-        'chart7': {
+        'shelter_by_type': {
             'warned':   analysis['periods_with_headup'],
             'surprise': analysis['periods_without_headup'],
         },
@@ -339,10 +354,29 @@ def report():
 
     analysis = analyze_alerts(alerts, city_filter=city)
 
+    # Build the full calendar date range for the query so bar charts show
+    # every day in the selected range, including days with zero events.
+    _today = datetime.now(ALERT_TZ).date()
+    _MODE_DAYS = {1: 1, 2: 7, 3: 30}
+    if mode in _MODE_DAYS:
+        _start = _today - timedelta(days=_MODE_DAYS[mode])
+        _end   = _today
+    else:
+        try:
+            _start = datetime.strptime(from_api, '%d.%m.%Y').date()
+            _end   = datetime.strptime(to_api,   '%d.%m.%Y').date()
+        except Exception:
+            _start = _end = _today
+    date_range = []
+    _d = _start
+    while _d <= _end:
+        date_range.append(_d.strftime('%Y-%m-%d'))
+        _d += timedelta(days=1)
+
     ctx = {
         **form_ctx(city=city, from_val=from_v, to_val=to_v, lang=lang, mode=mode),
         **build_report_ctx(analysis, city, from_api, to_api, lang, mode),
-        'charts_data': build_charts_data(alerts, analysis, city),
+        'charts_data': build_charts_data(alerts, analysis, city, date_range),
     }
     return render_template('report.html', **ctx)
 

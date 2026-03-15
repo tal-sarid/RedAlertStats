@@ -47,54 +47,47 @@
 
 {# ── Charts ──────────────────────────────────────────────────────────────── #}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-{% if charts_data.chart5.rockets or charts_data.chart5.aircraft or charts_data.chart6.true_positive or charts_data.chart6.false_positive or charts_data.chart7.warned or charts_data.chart7.surprise %}
+{% if charts_data.threat_types.rockets or charts_data.threat_types.aircraft or charts_data.warning_accuracy.true_positive or charts_data.warning_accuracy.false_positive or charts_data.shelter_by_type.warned or charts_data.shelter_by_type.surprise %}
 <div class="charts-pie-row">
-    {% if charts_data.chart5.rockets or charts_data.chart5.aircraft %}
+    {% if charts_data.threat_types.rockets or charts_data.threat_types.aircraft %}
     <div class="card">
         <div class="card-title">{{ t.chart_threat_types }}</div>
-        <div style="position:relative"><canvas id="chart5"></canvas></div>
+        <div style="position:relative"><canvas id="threat_types"></canvas></div>
     </div>
     {% endif %}
-    {% if charts_data.chart7.warned or charts_data.chart7.surprise %}
+    {% if charts_data.shelter_by_type.warned or charts_data.shelter_by_type.surprise %}
     <div class="card">
         <div class="card-title">{{ t.chart_shelter_warned_vs_surprise }}</div>
-        <div style="position:relative"><canvas id="chart7"></canvas></div>
+        <div style="position:relative"><canvas id="shelter_by_type"></canvas></div>
     </div>
     {% endif %}
-    {% if charts_data.chart6.true_positive or charts_data.chart6.false_positive %}
+    {% if charts_data.warning_accuracy.true_positive or charts_data.warning_accuracy.false_positive %}
     <div class="card">
         <div class="card-title">{{ t.chart_warning_accuracy }}</div>
-        <div style="position:relative"><canvas id="chart6"></canvas></div>
+        <div style="position:relative"><canvas id="warning_accuracy"></canvas></div>
     </div>
     {% endif %}
 </div>
 {% endif %}
 
-{% if charts_data.chart1.dates %}
+{% if charts_data.threats_per_date.has_data %}
 <div class="card">
     <div class="card-title">{{ t.chart_threats_per_date }}</div>
-    <div style="position:relative;height:280px"><canvas id="chart1"></canvas></div>
+    <div style="position:relative;height:280px"><canvas id="threats_per_date"></canvas></div>
 </div>
 {% endif %}
 
-{% if charts_data.chart4.rockets | sum or charts_data.chart4.aircraft | sum %}
+{% if charts_data.shelter_and_lead_per_date.has_data %}
+<div class="card">
+    <div class="card-title">{{ t.chart_shelter_and_lead_per_date }}</div>
+    <div style="position:relative;height:280px"><canvas id="shelter_and_lead_per_date"></canvas></div>
+</div>
+{% endif %}
+
+{% if charts_data.threats_per_hour.rockets | sum or charts_data.threats_per_hour.aircraft | sum %}
 <div class="card">
     <div class="card-title">{{ t.chart_threats_warnings_per_hour }}</div>
-    <div style="position:relative;height:280px"><canvas id="chart4"></canvas></div>
-</div>
-{% endif %}
-
-{% if charts_data.chart2.dates %}
-<div class="card">
-    <div class="card-title">{{ t.chart_shelter_time_per_date }}</div>
-    <div style="position:relative;height:280px"><canvas id="chart2"></canvas></div>
-</div>
-{% endif %}
-
-{% if charts_data.chart3.dates %}
-<div class="card">
-    <div class="card-title">{{ t.chart_avg_warning_duration }}</div>
-    <div style="position:relative;height:280px"><canvas id="chart3"></canvas></div>
+    <div style="position:relative;height:280px"><canvas id="threats_per_hour"></canvas></div>
 </div>
 {% endif %}
 
@@ -171,17 +164,19 @@
         chart.update('none');
     }
 
-    /* Chart 1 – stacked: threats + warnings per date */
-    if (document.getElementById('chart1')) {
-        var c1Show = [cd.chart1.rockets, cd.chart1.aircraft, cd.chart1.warnings].filter(anyNonZero).length > 1;
-        charts.push(new Chart(document.getElementById('chart1'), {
+    /* Chart: threats_per_date – stacked bar: threats + warnings per date */
+    if (document.getElementById('threats_per_date')) {
+        var cd1 = cd.threats_per_date;
+        var c1Show = [cd1.rockets, cd1.aircraft, cd1.warn_tp, cd1.warn_fp].filter(anyNonZero).length > 1;
+        charts.push(new Chart(document.getElementById('threats_per_date'), {
             type: 'bar',
             data: {
-                labels: cd.chart1.dates.map(addDOW),
+                labels: cd1.dates.map(addDOW),
                 datasets: [
-                    { label: {{ t.rocket_fire   | tojson }}, data: cd.chart1.rockets,  backgroundColor: ROCKET_C,   stack: 'threats'  },
-                    { label: {{ t.enemy_aircraft | tojson }}, data: cd.chart1.aircraft, backgroundColor: AIRCRAFT_C, stack: 'threats'  },
-                    { label: {{ t.chart_warnings_label | tojson }}, data: cd.chart1.warnings, backgroundColor: WARN_C, stack: 'warnings' },
+                    { label: {{ t.rocket_fire        | tojson }}, data: cd1.rockets,  backgroundColor: ROCKET_C,   stack: 'threats'  },
+                    { label: {{ t.enemy_aircraft     | tojson }}, data: cd1.aircraft, backgroundColor: AIRCRAFT_C, stack: 'threats'  },
+                    { label: {{ t.true_positive_tag  | tojson }}, data: cd1.warn_tp,  backgroundColor: TRUE_C,     stack: 'warnings' },
+                    { label: {{ t.false_positive_tag | tojson }}, data: cd1.warn_fp,  backgroundColor: FALSE_C,    stack: 'warnings' },
                 ],
             },
             options: { responsive: true, maintainAspectRatio: false,
@@ -189,49 +184,42 @@
         }));
     }
 
-    /* Chart 2 – area: shelter time per date */
-    if (document.getElementById('chart2')) {
-        charts.push(new Chart(document.getElementById('chart2'), {
+    /* Chart: shelter_and_lead_per_date – area: shelter time + total lead time per date */
+    if (document.getElementById('shelter_and_lead_per_date')) {
+        var cd2 = cd.shelter_and_lead_per_date;
+        charts.push(new Chart(document.getElementById('shelter_and_lead_per_date'), {
             type: 'line',
             data: {
-                labels: cd.chart2.dates.map(addDOW),
-                datasets: [{ label: {{ t.chart_shelter_time_per_date | tojson }},
-                    data: cd.chart2.seconds,
-                    backgroundColor: SHELTER_FILL, borderColor: SHELTER_C,
-                    fill: true, tension: 0.35, pointRadius: 4 }],
+                labels: cd2.dates.map(addDOW),
+                datasets: [
+                    { label: {{ t.chart_shelter_time_per_date | tojson }},
+                      data: cd2.shelter_seconds,
+                      backgroundColor: SHELTER_FILL, borderColor: SHELTER_C,
+                      fill: true, tension: 0.35, pointRadius: 4 },
+                    { label: {{ t.chart_avg_warning_duration | tojson }},
+                      data: cd2.lead_seconds,
+                      backgroundColor: WARN_FILL, borderColor: WARN_C,
+                      fill: true, tension: 0.35, pointRadius: 4 },
+                ],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(false), tooltip: secTooltip() }, scales: secScales() },
+                plugins: { legend: legendCfg(true), tooltip: secTooltip() }, scales: secScales() },
         }));
     }
 
-    /* Chart 3 – area: avg warning duration per date */
-    if (document.getElementById('chart3')) {
-        charts.push(new Chart(document.getElementById('chart3'), {
-            type: 'line',
-            data: {
-                labels: cd.chart3.dates.map(addDOW),
-                datasets: [{ label: {{ t.chart_avg_warning_duration | tojson }},
-                    data: cd.chart3.avg_seconds,
-                    backgroundColor: WARN_FILL, borderColor: WARN_C,
-                    fill: true, tension: 0.35, pointRadius: 4 }],
-            },
-            options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(false), tooltip: secTooltip() }, scales: secScales() },
-        }));
-    }
-
-    /* Chart 4 – stacked: threats + warnings per hour */
-    if (document.getElementById('chart4')) {
-        var c4Show = [cd.chart4.rockets, cd.chart4.aircraft, cd.chart4.warnings].filter(anyNonZero).length > 1;
-        charts.push(new Chart(document.getElementById('chart4'), {
+    /* Chart: threats_per_hour – stacked bar: threats + warnings per hour */
+    if (document.getElementById('threats_per_hour')) {
+        var cd4 = cd.threats_per_hour;
+        var c4Show = [cd4.rockets, cd4.aircraft, cd4.warn_tp, cd4.warn_fp].filter(anyNonZero).length > 1;
+        charts.push(new Chart(document.getElementById('threats_per_hour'), {
             type: 'bar',
             data: {
-                labels: cd.chart4.hours.map(function (h) { return String(h).padStart(2, '0') + ':00'; }),
+                labels: cd4.hours.map(function (h) { return String(h).padStart(2, '0') + ':00'; }),
                 datasets: [
-                    { label: {{ t.rocket_fire   | tojson }}, data: cd.chart4.rockets,  backgroundColor: ROCKET_C,   stack: 'threats'  },
-                    { label: {{ t.enemy_aircraft | tojson }}, data: cd.chart4.aircraft, backgroundColor: AIRCRAFT_C, stack: 'threats'  },
-                    { label: {{ t.chart_warnings_label | tojson }}, data: cd.chart4.warnings, backgroundColor: WARN_C, stack: 'warnings' },
+                    { label: {{ t.rocket_fire        | tojson }}, data: cd4.rockets,  backgroundColor: ROCKET_C,   stack: 'threats'  },
+                    { label: {{ t.enemy_aircraft     | tojson }}, data: cd4.aircraft, backgroundColor: AIRCRAFT_C, stack: 'threats'  },
+                    { label: {{ t.true_positive_tag  | tojson }}, data: cd4.warn_tp,  backgroundColor: TRUE_C,     stack: 'warnings' },
+                    { label: {{ t.false_positive_tag | tojson }}, data: cd4.warn_fp,  backgroundColor: FALSE_C,    stack: 'warnings' },
                 ],
             },
             options: { responsive: true, maintainAspectRatio: false,
@@ -239,13 +227,13 @@
         }));
     }
 
-    /* Chart 5 – doughnut: threat types */
-    if (document.getElementById('chart5')) {
-        charts.push(new Chart(document.getElementById('chart5'), {
+    /* Chart: threat_types – doughnut */
+    if (document.getElementById('threat_types')) {
+        charts.push(new Chart(document.getElementById('threat_types'), {
             type: 'doughnut',
             data: {
                 labels: [{{ t.rocket_fire | tojson }}, {{ t.enemy_aircraft | tojson }}],
-                datasets: [{ data: [cd.chart5.rockets, cd.chart5.aircraft],
+                datasets: [{ data: [cd.threat_types.rockets, cd.threat_types.aircraft],
                     backgroundColor: [ROCKET_C, AIRCRAFT_C] }],
             },
             options: { responsive: true, maintainAspectRatio: false,
@@ -253,14 +241,15 @@
         }));
     }
 
-    /* Chart 6 – doughnut: true vs false warnings */
-    if (document.getElementById('chart6')) {
-        var c6Show = cd.chart6.true_positive > 0 && cd.chart6.false_positive > 0;
-        charts.push(new Chart(document.getElementById('chart6'), {
+    /* Chart: warning_accuracy – doughnut */
+    if (document.getElementById('warning_accuracy')) {
+        var warnAcc = cd.warning_accuracy;
+        var c6Show = warnAcc.true_positive > 0 && warnAcc.false_positive > 0;
+        charts.push(new Chart(document.getElementById('warning_accuracy'), {
             type: 'doughnut',
             data: {
                 labels: [{{ t.true_positive_tag | tojson }}, {{ t.false_positive_tag | tojson }}],
-                datasets: [{ data: [cd.chart6.true_positive, cd.chart6.false_positive],
+                datasets: [{ data: [warnAcc.true_positive, warnAcc.false_positive],
                     backgroundColor: [TRUE_C, FALSE_C] }],
             },
             options: { responsive: true, maintainAspectRatio: false,
@@ -268,14 +257,15 @@
         }));
     }
 
-    /* Chart 7 – doughnut: warned vs surprise shelter periods */
-    if (document.getElementById('chart7')) {
-        var c7Show = cd.chart7.warned > 0 && cd.chart7.surprise > 0;
-        charts.push(new Chart(document.getElementById('chart7'), {
+    /* Chart: shelter_by_type – doughnut */
+    if (document.getElementById('shelter_by_type')) {
+        var sbt = cd.shelter_by_type;
+        var c7Show = sbt.warned > 0 && sbt.surprise > 0;
+        charts.push(new Chart(document.getElementById('shelter_by_type'), {
             type: 'doughnut',
             data: {
                 labels: [{{ t.warned | tojson }}, {{ t.surprise | tojson }}],
-                datasets: [{ data: [cd.chart7.warned, cd.chart7.surprise],
+                datasets: [{ data: [sbt.warned, sbt.surprise],
                     backgroundColor: [WARN_C, ROCKET_C] }],
             },
             options: { responsive: true, maintainAspectRatio: false,
