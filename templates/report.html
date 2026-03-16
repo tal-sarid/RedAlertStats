@@ -136,17 +136,49 @@
             y: { grid: { color: cv('--border') }, ticks: { color: cv('--muted') }, beginAtZero: true, position: IS_RTL ? 'right' : 'left' },
         };
     }
+    function dateBarScales() {
+        var sc = gridScales();
+        sc.x.offset = true;
+        sc.x.grid.offset = true;
+        sc.x.ticks.autoSkip = false;
+        return sc;
+    }
     function secScales() {
         var sc = gridScales();
+        sc.x.ticks.autoSkip = false;
         sc.y.ticks.callback = function (v) { return fmtSec(v); };
         return sc;
     }
-    function legendCfg(show) {
-        return { display: show !== false, rtl: IS_RTL, labels: { color: cv('--text'), padding: 16 } };
+    function legendCfg() {
+        return { display: true, rtl: IS_RTL, labels: { color: cv('--text'), padding: 16 } };
     }
-    function anyNonZero(arr) { return arr.some(function (v) { return v > 0; }); }
+    function fmtPct(value, total) {
+        if (!total) return '0%';
+        var p = (value * 100) / total;
+        return (Math.round(p * 10) / 10).toString().replace(/\.0$/, '') + '%';
+    }
+    function pieTooltip() {
+        return {
+            rtl: IS_RTL,
+            callbacks: {
+                label: function (ctx) {
+                    var data = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data : [];
+                    var total = data.reduce(function (sum, v) { return sum + Number(v || 0); }, 0);
+                    var val = Number(ctx.raw || 0);
+                    return ctx.label + ': ' + val + ' (' + fmtPct(val, total) + ')';
+                }
+            }
+        };
+    }
     function secTooltip() {
-        return { rtl: IS_RTL, callbacks: { label: function (ctx) { return fmtSec(ctx.raw); } } };
+        return {
+            rtl: IS_RTL,
+            callbacks: {
+                label: function (ctx) {
+                    return ctx.dataset.label + ': ' + fmtSec(ctx.raw);
+                }
+            }
+        };
     }
     function recolorChart(chart) {
         var border = cv('--border'), muted = cv('--muted'), text = cv('--text');
@@ -167,7 +199,6 @@
     /* Chart: threats_per_date – stacked bar: threats + warnings per date */
     if (document.getElementById('threats_per_date')) {
         var cd1 = cd.threats_per_date;
-        var c1Show = [cd1.rockets, cd1.aircraft, cd1.warn_tp, cd1.warn_fp].filter(anyNonZero).length > 1;
         charts.push(new Chart(document.getElementById('threats_per_date'), {
             type: 'bar',
             data: {
@@ -180,7 +211,7 @@
                 ],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(c1Show), tooltip: c1Show ? { rtl: IS_RTL } : { rtl: IS_RTL, callbacks: { label: function(ctx) { return String(ctx.raw); } } } }, scales: gridScales() },
+                plugins: { legend: legendCfg(), tooltip: { rtl: IS_RTL } }, scales: dateBarScales() },
         }));
     }
 
@@ -203,14 +234,13 @@
                 ],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(true), tooltip: secTooltip() }, scales: secScales() },
+                plugins: { legend: legendCfg(), tooltip: secTooltip() }, scales: secScales() },
         }));
     }
 
     /* Chart: threats_per_hour – stacked bar: threats + warnings per hour */
     if (document.getElementById('threats_per_hour')) {
         var cd4 = cd.threats_per_hour;
-        var c4Show = [cd4.rockets, cd4.aircraft, cd4.warn_tp, cd4.warn_fp].filter(anyNonZero).length > 1;
         charts.push(new Chart(document.getElementById('threats_per_hour'), {
             type: 'bar',
             data: {
@@ -223,7 +253,7 @@
                 ],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(c4Show), tooltip: c4Show ? { rtl: IS_RTL } : { rtl: IS_RTL, callbacks: { label: function(ctx) { return String(ctx.raw); } } } }, scales: gridScales() },
+                plugins: { legend: legendCfg(), tooltip: { rtl: IS_RTL } }, scales: dateBarScales() },
         }));
     }
 
@@ -237,14 +267,13 @@
                     backgroundColor: [ROCKET_C, AIRCRAFT_C] }],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(true), tooltip: { rtl: IS_RTL } } },
+                plugins: { legend: legendCfg(), tooltip: pieTooltip() } },
         }));
     }
 
     /* Chart: warning_accuracy – doughnut */
     if (document.getElementById('warning_accuracy')) {
         var warnAcc = cd.warning_accuracy;
-        var c6Show = warnAcc.true_positive > 0 && warnAcc.false_positive > 0;
         charts.push(new Chart(document.getElementById('warning_accuracy'), {
             type: 'doughnut',
             data: {
@@ -253,14 +282,13 @@
                     backgroundColor: [TRUE_C, FALSE_C] }],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(c6Show), tooltip: c6Show ? { rtl: IS_RTL } : { rtl: IS_RTL, callbacks: { title: function() { return ''; } } } } },
+                plugins: { legend: legendCfg(), tooltip: pieTooltip() } },
         }));
     }
 
     /* Chart: shelter_by_type – doughnut */
     if (document.getElementById('shelter_by_type')) {
         var sbt = cd.shelter_by_type;
-        var c7Show = sbt.warned > 0 && sbt.surprise > 0;
         charts.push(new Chart(document.getElementById('shelter_by_type'), {
             type: 'doughnut',
             data: {
@@ -269,7 +297,7 @@
                     backgroundColor: [WARN_C, ROCKET_C] }],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(c7Show), tooltip: c7Show ? { rtl: IS_RTL } : { rtl: IS_RTL, callbacks: { title: function() { return ''; } } } } },
+                plugins: { legend: legendCfg(), tooltip: pieTooltip() } },
         }));
     }
 
