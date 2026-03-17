@@ -77,6 +77,19 @@
         localStorage.setItem('lang', switcher.value);
         var url = new URL(location.href);
         url.searchParams.set('lang', switcher.value);
+        // On the report page the city name is language-specific; use the
+        // pre-loaded multilingual city names to switch the city param in-place.
+        // Fall back to the index page (without city) if no translation is available.
+        if (url.pathname.replace(/\/+$/, '') === '/report') {
+            var names = window.cityNames || {};
+            var nameInLang = names[switcher.value];
+            if (nameInLang) {
+                url.searchParams.set('city', nameInLang);
+            } else {
+                url.pathname = '/';
+                url.searchParams.delete('city');
+            }
+        }
         location.href = url.toString();
     });
 }());

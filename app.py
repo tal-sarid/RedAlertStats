@@ -259,6 +259,7 @@ def build_report_ctx(analysis: dict, city: str, from_api: str,
 
     return {
         'city_display':        analysis['city_display'] or city,
+        'city_names':          analysis.get('city_names', {}),
         'from_date':           from_api,
         'to_date':             to_api,
         'lang_name':           LANG_NAMES.get(lang, lang),
@@ -297,10 +298,12 @@ def index():
             mode = 3
     except (ValueError, TypeError):
         mode = 3
+    from_val = request.args.get('from_date', '') or api_to_html_date(DEFAULT_FROM)
+    to_val   = request.args.get('to_date',   '') or datetime.now().strftime('%Y-%m-%d')
     ctx = form_ctx(
         lang=lang,
-        from_val=api_to_html_date(DEFAULT_FROM),
-        to_val=datetime.now().strftime('%Y-%m-%d'),
+        from_val=from_val,
+        to_val=to_val,
         mode=mode,
     )
     return render_template('index.html', **ctx)

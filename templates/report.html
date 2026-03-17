@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script>window.cityNames = {{ city_names | tojson }};</script>
 {% include "_form.html" %}
 
 {# ── Report heading ──────────────────────────────────────────────────────── #}
@@ -26,22 +27,34 @@
     <div class="stat">
         <div class="sl">{{ t.actual_threats }}</div>
         <div class="sv">{{ actual_count }}</div>
-        <div class="ss"><span class="nb">🚀 {{ cat_rocket }} {{ t.rocket_fire | lower }}</span> &middot; <span class="nb">✈️ {{ cat_aircraft }} {{ t.enemy_aircraft | lower }}</span></div>
+        <div class="ss">
+            <div class="ss-line"><span class="nb">🚀 {{ cat_rocket }} {{ t.rocket_fire | lower }}</span> &middot; <span class="nb">{{ '%.1f' | format((cat_rocket * 100 / actual_count) if actual_count else 0) }}%</span></div>
+            <div class="ss-line"><span class="nb">✈️ {{ cat_aircraft }} {{ t.enemy_aircraft | lower }}</span> &middot; <span class="nb">{{ '%.1f' | format((cat_aircraft * 100 / actual_count) if actual_count else 0) }}%</span></div>
+        </div>
     </div>
     <div class="stat">
         <div class="sl">{{ t.shelter_periods }}</div>
         <div class="sv">{{ period_count }}</div>
-        <div class="ss"><span class="nb">🔔 {{ with_hup }} {{ t.warned | lower }}</span> &middot; <span class="nb">⚡ {{ without_hup }} {{ t.surprise | lower }}</span></div>
+        <div class="ss">
+            <div class="ss-line"><span class="nb">🔔 {{ with_hup }} {{ t.warned | lower }}</span> &middot; <span class="nb">{{ '%.1f' | format((with_hup * 100 / period_count) if period_count else 0) }}%</span></div>
+            <div class="ss-line"><span class="nb">⚡ {{ without_hup }} {{ t.surprise | lower }}</span> &middot; <span class="nb">{{ '%.1f' | format((without_hup * 100 / period_count) if period_count else 0) }}%</span></div>
+        </div>
     </div>
     <div class="stat">
         <div class="sl">{{ t.total_shelter }}</div>
         <div class="sv">{{ total_dur }}</div>
-        <div class="ss"><span class="nb">⏱️ {{ t.avg | lower }} {{ avg_dur }}</span> &middot; <span class="nb">🛡️ {{ t.max | lower }} {{ max_dur }}</span></div>
+        <div class="ss">
+            <div class="ss-line"><span class="nb">⏱️ {{ t.avg | lower }} {{ avg_dur }}</span></div>
+            <div class="ss-line"><span class="nb">🛡️ {{ t.max | lower }} {{ max_dur }}</span></div>
+        </div>
     </div>
     <div class="stat">
         <div class="sl">{{ t.warning_headups }}</div>
         <div class="sv">{{ warning_count }}</div>
-        <div class="ss"><span class="nb">❌ {{ fp_count }} {{ (t.fp_plural if fp_count != 1 else t.fp_singular) | lower }}</span> &middot; <span class="nb">{{ '%.1f' | format(fp_ratio) }}%</span></div>
+        <div class="ss">
+            <div class="ss-line"><span class="nb">✅ {{ true_positive_count }} {{ t.true_positive_tag | lower }}</span> &middot; <span class="nb">{{ '%.1f' | format((true_positive_count * 100 / warning_count) if warning_count else 0) }}%</span></div>
+            <div class="ss-line"><span class="nb">❌ {{ fp_count }} {{ (t.fp_plural if fp_count != 1 else t.fp_singular) | lower }}</span> &middot; <span class="nb">{{ '%.1f' | format(fp_ratio) }}%</span></div>
+        </div>
     </div>
 </div>
 
@@ -118,7 +131,7 @@
         var d = new Date(dateStr + 'T12:00:00');
         var dow = d.toLocaleDateString(LANG, { weekday: 'short' });
         var short = d.toLocaleDateString(LANG, { month: 'numeric', day: 'numeric' });
-        return [dow, short];
+        return dow + ' ' + short;
     }
 
     var ROCKET_C    = cv('--chart-rocket');
@@ -136,16 +149,34 @@
             y: { grid: { color: cv('--border') }, ticks: { color: cv('--muted') }, beginAtZero: true, position: IS_RTL ? 'right' : 'left' },
         };
     }
+    function sparseLabel(val, index, ticks) {
+        if (index === 0) {
+            var ctx = this.chart.ctx;
+            var maxW = 0;
+            for (var i = 0; i < ticks.length; i++) {
+                var lbl = this.getLabelForValue(ticks[i].value);
+                var lines = Array.isArray(lbl) ? lbl : [String(lbl || '')];
+                for (var j = 0; j < lines.length; j++) {
+                    var w = ctx.measureText(lines[j]).width;
+                    if (w > maxW) maxW = w;
+                }
+            }
+            this._sparseStep = Math.max(1, Math.ceil(maxW / (this.width / ticks.length)));
+        }
+        return index % this._sparseStep === 0 ? this.getLabelForValue(val) : '';
+    }
     function dateBarScales() {
         var sc = gridScales();
         sc.x.offset = true;
         sc.x.grid.offset = true;
         sc.x.ticks.autoSkip = false;
+        sc.x.ticks.callback = sparseLabel;
         return sc;
     }
     function secScales() {
         var sc = gridScales();
         sc.x.ticks.autoSkip = false;
+        sc.x.ticks.callback = sparseLabel;
         sc.y.ticks.callback = function (v) { return fmtSec(v); };
         return sc;
     }
@@ -244,7 +275,10 @@
         charts.push(new Chart(document.getElementById('threats_per_hour'), {
             type: 'bar',
             data: {
-                labels: cd4.hours.map(function (h) { return String(h).padStart(2, '0') + ':00'; }),
+                labels: cd4.hours.map(function (h) {
+                    var d = new Date(2000, 0, 1, h, 0, 0);
+                    return d.toLocaleTimeString(LANG, { hour: '2-digit', minute: '2-digit' });
+                }),
                 datasets: [
                     { label: {{ t.rocket_fire        | tojson }}, data: cd4.rockets,  backgroundColor: ROCKET_C,   stack: 'threats'  },
                     { label: {{ t.enemy_aircraft     | tojson }}, data: cd4.aircraft, backgroundColor: AIRCRAFT_C, stack: 'threats'  },
@@ -419,7 +453,7 @@
 <script>
 (function () {
     var LANG = {{ lang | tojson }};
-    var opts = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+    var opts = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
     document.querySelectorAll('[data-dt]').forEach(function (el) {
         var raw = el.getAttribute('data-dt');
         if (!raw || raw === '\u2014') return;

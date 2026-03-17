@@ -262,7 +262,8 @@ header .sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
     line-height: 1.15;
     word-break: break-word;
 }
-.stat .ss { font-size: .7rem; color: var(--muted); margin-top: auto; padding-top: .35rem; }
+.stat .ss { font-size: .7rem; color: var(--muted); margin-top: auto; padding-top: .35rem; display: grid; gap: .2rem; }
+.stat .ss .ss-line { line-height: 1.25; }
 .stat .ss .nb { white-space: nowrap; }
 
 /* ── Detail grid ── */

@@ -112,6 +112,7 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
     # Store city display name
     city_name = None
     city_display = None
+    city_names = {}  # {lang_code: name}
     
     # Count categories upfront
     for alert in alerts:
@@ -121,6 +122,12 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
         if city_name is None:
             city_name = alert.get('data', 'Unknown').strip()
             city_display = city_name
+            city_names = {
+                'he': alert.get('NAME_HE', ''),
+                'en': alert.get('NAME_EN', ''),
+                'ar': alert.get('NAME_AR', ''),
+                'ru': alert.get('NAME_RU', ''),
+            }
 
     # Single pass through sorted alerts
     add_precise_datetime(alerts)  # Add precise datetime for better analysis
@@ -244,6 +251,7 @@ def analyze_alerts(alerts: List[Dict], city_filter: Optional[str] = None) -> Dic
         'category_counts': dict(category_counts),
         'city_name': city_name,
         'city_display': city_display,
+        'city_names': city_names,
         'actual_alerts': category_counts.get(1, 0) + category_counts.get(2, 0)
     }
 
