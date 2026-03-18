@@ -115,23 +115,31 @@
     var DUR_S = {{ t.dur_s | tojson }};
     var LANG   = {{ lang | tojson }};
     var IS_RTL = document.documentElement.dir === 'rtl';
+    var IS_ARABIC_NUMS = document.documentElement.dataset.arabicNums === 'true';
     var charts = [];
+
+    function toAr(s) {
+        if (!IS_ARABIC_NUMS) return String(s);
+        return String(s).replace(/[0-9]/g, function (d) {
+            return String.fromCharCode(d.charCodeAt(0) + 0x0630);
+        });
+    }
 
     function fmtSec(s) {
         s = Math.round(s);
         var h = Math.floor(s / 3600);
         var m = Math.floor((s % 3600) / 60);
         var sc = s % 60;
-        if (h > 0) { return h + DUR_H + ' ' + String(m).padStart(2, '0') + DUR_M; }
-        if (m > 0) { return m + DUR_M + ' ' + String(sc).padStart(2, '0') + DUR_S; }
-        return sc + DUR_S;
+        if (h > 0) { return toAr(h + DUR_H + ' ' + String(m).padStart(2, '0') + DUR_M); }
+        if (m > 0) { return toAr(m + DUR_M + ' ' + String(sc).padStart(2, '0') + DUR_S); }
+        return toAr(sc + DUR_S);
     }
 
     function addDOW(dateStr) {
         var d = new Date(dateStr + 'T12:00:00');
         var dow = d.toLocaleDateString(LANG, { weekday: 'short' });
         var short = d.toLocaleDateString(LANG, { month: 'numeric', day: 'numeric' });
-        return dow + ' ' + short;
+        return toAr(dow + ' ' + short);
     }
 
     var ROCKET_C    = cv('--chart-rocket');
@@ -146,7 +154,7 @@
     function gridScales() {
         return {
             x: { grid: { color: cv('--border') }, ticks: { color: cv('--muted') }, reverse: IS_RTL },
-            y: { grid: { color: cv('--border') }, ticks: { color: cv('--muted') }, beginAtZero: true, position: IS_RTL ? 'right' : 'left' },
+            y: { grid: { color: cv('--border') }, ticks: { color: cv('--muted'), callback: function (v) { return toAr(v); } }, beginAtZero: true, position: IS_RTL ? 'right' : 'left' },
         };
     }
     function sparseLabel(val, index, ticks) {
@@ -184,9 +192,9 @@
         return { display: true, rtl: IS_RTL, labels: { color: cv('--text'), padding: 16 } };
     }
     function fmtPct(value, total) {
-        if (!total) return '0%';
+        if (!total) return toAr('0%');
         var p = (value * 100) / total;
-        return (Math.round(p * 10) / 10).toString().replace(/\.0$/, '') + '%';
+        return toAr((Math.round(p * 10) / 10).toString().replace(/\.0$/, '') + '%');
     }
     function pieTooltip() {
         return {
@@ -196,7 +204,7 @@
                     var data = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data : [];
                     var total = data.reduce(function (sum, v) { return sum + Number(v || 0); }, 0);
                     var val = Number(ctx.raw || 0);
-                    return ctx.label + ': ' + val + ' (' + fmtPct(val, total) + ')';
+                    return ctx.label + ': ' + toAr(val) + ' (' + fmtPct(val, total) + ')';
                 }
             }
         };
@@ -207,6 +215,16 @@
             callbacks: {
                 label: function (ctx) {
                     return ctx.dataset.label + ': ' + fmtSec(ctx.raw);
+                }
+            }
+        };
+    }
+    function barTooltip() {
+        return {
+            rtl: IS_RTL,
+            callbacks: {
+                label: function (ctx) {
+                    return ctx.dataset.label + ': ' + toAr(ctx.formattedValue);
                 }
             }
         };
@@ -242,7 +260,7 @@
                 ],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(), tooltip: { rtl: IS_RTL } }, scales: dateBarScales() },
+                plugins: { legend: legendCfg(), tooltip: barTooltip() }, scales: dateBarScales() },
         }));
     }
 
@@ -277,7 +295,7 @@
             data: {
                 labels: cd4.hours.map(function (h) {
                     var d = new Date(2000, 0, 1, h, 0, 0);
-                    return d.toLocaleTimeString(LANG, { hour: '2-digit', minute: '2-digit' });
+                    return toAr(d.toLocaleTimeString(LANG, { hour: '2-digit', minute: '2-digit' }));
                 }),
                 datasets: [
                     { label: {{ t.rocket_fire        | tojson }}, data: cd4.rockets,  backgroundColor: ROCKET_C,   stack: 'threats'  },
@@ -287,7 +305,7 @@
                 ],
             },
             options: { responsive: true, maintainAspectRatio: false,
-                plugins: { legend: legendCfg(), tooltip: { rtl: IS_RTL } }, scales: dateBarScales() },
+                plugins: { legend: legendCfg(), tooltip: barTooltip() }, scales: dateBarScales() },
         }));
     }
 

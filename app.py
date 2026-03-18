@@ -43,7 +43,7 @@ LANG_OPTIONS = [
     ('he', '🇮🇱', 'עברית'),
     ('en', '🇬🇧', 'English'),
     ('ru', '🇷🇺', 'Русский'),
-    ('ar', '🇸🇦', 'العربية'),
+    ('ar', '🇯🇴', 'العربية'),
 ]
 LANG_NAMES = {code: label for code, _, label in LANG_OPTIONS}
 
