@@ -63,5 +63,7 @@
     "err_city_required":                "City name is required.",
     "err_fetch_failed":                 "Failed to fetch data from the Home Front Command API: {detail}",
     "err_no_records":                   "No alert records found for \u201c{city}\u201d between {from_date} and {to_date}. Verify the city name spelling \u2014 it must match the selected language.",
-    "err_no_records_preset":            "No alert records found for \u201c{city}\u201d. Verify the city name spelling \u2014 it must match the selected language."
+    "err_no_records_preset":            "No alert records found for \u201c{city}\u201d. Verify the city name spelling \u2014 it must match the selected language.",
+    "chart_expand":                     "Expand chart",
+    "chart_collapse":                   "Collapse chart"
 }

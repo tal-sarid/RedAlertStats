@@ -118,6 +118,9 @@ header .sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
     margin-bottom: 1.4rem;
 }
 .card-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: .68rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -424,3 +427,44 @@ details:not([open]) > summary.card-title::after {
 .charts-pie-row > .card > div:last-child { flex: 1; min-height: 220px; position: relative; }
 @media (max-width: 900px) { .charts-pie-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .charts-pie-row { grid-template-columns: 1fr; } }
+
+/* ── Chart expand / fullscreen ── */
+.chart-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+    padding: .2rem .38rem;
+    margin-inline-start: .75rem;
+    line-height: 1;
+    transition: border-color .15s, color .15s;
+}
+.chart-expand-btn:hover { border-color: var(--accent); color: var(--text); }
+
+.chart-fs-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .65);
+    z-index: 999;
+    cursor: pointer;
+}
+
+.card--fullscreen {
+    position: fixed !important;
+    inset: 1rem !important;
+    z-index: 1000 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+.card--fullscreen > div:last-child {
+    flex: 1 1 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+}

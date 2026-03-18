@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% from "_icons.html" import expand as icon_expand, collapse as icon_collapse %}
+{% set _expand_svg %}{{ icon_expand() }}{% endset %}
+{% set _collapse_svg %}{{ icon_collapse() }}{% endset %}
 
 {% block content %}
 <script>window.cityNames = {{ city_names | tojson }};</script>
@@ -85,21 +88,36 @@
 
 {% if charts_data.threats_per_date.has_data %}
 <div class="card">
-    <div class="card-title">{{ t.chart_threats_per_date }}</div>
+    <div class="card-title">
+        <span>{{ t.chart_threats_per_date }}</span>
+        <button class="chart-expand-btn" data-expand-label="{{ t.chart_expand }}" data-collapse-label="{{ t.chart_collapse }}" title="{{ t.chart_expand }}" aria-label="{{ t.chart_expand }}">
+            {{ icon_expand() }}
+        </button>
+    </div>
     <div style="position:relative;height:280px"><canvas id="threats_per_date"></canvas></div>
 </div>
 {% endif %}
 
 {% if charts_data.shelter_and_lead_per_date.has_data %}
 <div class="card">
-    <div class="card-title">{{ t.chart_shelter_and_lead_per_date }}</div>
+    <div class="card-title">
+        <span>{{ t.chart_shelter_and_lead_per_date }}</span>
+        <button class="chart-expand-btn" data-expand-label="{{ t.chart_expand }}" data-collapse-label="{{ t.chart_collapse }}" title="{{ t.chart_expand }}" aria-label="{{ t.chart_expand }}">
+            {{ icon_expand() }}
+        </button>
+    </div>
     <div style="position:relative;height:280px"><canvas id="shelter_and_lead_per_date"></canvas></div>
 </div>
 {% endif %}
 
 {% if charts_data.threats_per_hour.rockets | sum or charts_data.threats_per_hour.aircraft | sum %}
 <div class="card">
-    <div class="card-title">{{ t.chart_threats_warnings_per_hour }}</div>
+    <div class="card-title">
+        <span>{{ t.chart_threats_warnings_per_hour }}</span>
+        <button class="chart-expand-btn" data-expand-label="{{ t.chart_expand }}" data-collapse-label="{{ t.chart_collapse }}" title="{{ t.chart_expand }}" aria-label="{{ t.chart_expand }}">
+            {{ icon_expand() }}
+        </button>
+    </div>
     <div style="position:relative;height:280px"><canvas id="threats_per_hour"></canvas></div>
 </div>
 {% endif %}
@@ -482,6 +500,94 @@
                 el.classList.remove('dt-ltr');
             }
         } catch (e) {}
+    });
+}());
+</script>
+
+<script>
+/* ── Chart fullscreen expand/collapse ── */
+(function () {
+    var EXPAND_SVG = {{ _expand_svg | tojson }};
+    var COLLAPSE_SVG = {{ _collapse_svg | tojson }};
+
+    var backdrop = null;
+    var activeCard = null;
+    var activeBtn = null;
+
+    function expand(btn) {
+        var card = btn.closest('.card');
+        if (!card) return;
+
+        backdrop = document.createElement('div');
+        backdrop.className = 'chart-fs-backdrop';
+        backdrop.addEventListener('click', collapse);
+        document.body.appendChild(backdrop);
+
+        card.classList.add('card--fullscreen');
+        activeCard = card;
+        activeBtn = btn;
+
+        btn.innerHTML = COLLAPSE_SVG;
+        var colLabel = btn.getAttribute('data-collapse-label');
+        btn.title = colLabel;
+        btn.setAttribute('aria-label', colLabel);
+
+        requestAnimationFrame(function () {
+            var canvas = card.querySelector('canvas');
+            if (canvas && typeof Chart !== 'undefined') {
+                var inst = Chart.getChart(canvas);
+                if (inst) inst.resize();
+            }
+        });
+
+        document.addEventListener('keydown', onKeydown);
+    }
+
+    function collapse() {
+        if (!activeCard) return;
+        activeCard.classList.remove('card--fullscreen');
+
+        if (backdrop) {
+            backdrop.removeEventListener('click', collapse);
+            document.body.removeChild(backdrop);
+            backdrop = null;
+        }
+
+        if (activeBtn) {
+            activeBtn.innerHTML = EXPAND_SVG;
+            var expLabel = activeBtn.getAttribute('data-expand-label');
+            activeBtn.title = expLabel;
+            activeBtn.setAttribute('aria-label', expLabel);
+        }
+
+        var card = activeCard;
+        activeCard = null;
+        activeBtn = null;
+
+        requestAnimationFrame(function () {
+            var canvas = card.querySelector('canvas');
+            if (canvas && typeof Chart !== 'undefined') {
+                var inst = Chart.getChart(canvas);
+                if (inst) inst.resize();
+            }
+        });
+
+        document.removeEventListener('keydown', onKeydown);
+    }
+
+    function onKeydown(e) {
+        if (e.key === 'Escape') collapse();
+    }
+
+    document.querySelectorAll('.chart-expand-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (activeCard) {
+                collapse();
+            } else {
+                expand(btn);
+            }
+        });
     });
 }());
 </script>
